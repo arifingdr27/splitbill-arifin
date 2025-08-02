@@ -5,11 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil" // Tambahkan ini
+	"io/ioutil"
 	"os"
 	"strings"
-
-	// "time" // Tidak perlu lagi timestamp di sini, karena sudah di handle di UploadFile
 
 	"github.com/arifin2018/splitbill-arifin.git/config"
 	files "github.com/arifin2018/splitbill-arifin.git/helpers/files"
