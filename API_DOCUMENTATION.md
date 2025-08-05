@@ -41,7 +41,7 @@ http://localhost:3000/swagger/index.html
 
 ### Endpoints
 
-#### POST /
+#### POST /api/v2
 Extract splitbill information from receipt image
 
 **Request:**
@@ -110,7 +110,7 @@ Extract splitbill information from receipt image
 
 ### Using cURL
 ```bash
-curl -X POST http://localhost:3000/ \
+curl -X POST http://localhost:3000/api/v2 \
   -H "Content-Type: multipart/form-data" \
   -F "image=@/path/to/receipt.jpg"
 ```
