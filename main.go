@@ -32,6 +32,15 @@ import (
 func main() {
 	app := fiber.New()
 
+	// Logging ke stdout
+	// app.Use(logger.New())
+
+	// Allow semua origin agar frontend bisa akses dari mana saja
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+	}))
+
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 

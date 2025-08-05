@@ -8,5 +8,7 @@ import (
 func Router(app *fiber.App) {
 	allController := injector.InitializeController()
 
-	app.Post("/", allController.SplitbilController.Splitbil)
+	api_v2 := app.Group("/api/v2/")
+
+	api_v2.Post("/", allController.SplitbilController.Splitbil)
 }
