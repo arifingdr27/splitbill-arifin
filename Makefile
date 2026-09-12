@@ -19,8 +19,8 @@ build: dirs
 		$(GO_IMAGE) \
 		sh -c 'apk add --no-cache git ca-certificates >/dev/null && go build -buildvcs=false -ldflags="-s -w" -o $(APP_BIN) $(CMD_PKG)'
 
-up:
-	./docker-up.sh
+up: build
+	docker compose up -d --build --remove-orphans
 
 down:
 	docker compose down
