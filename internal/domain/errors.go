@@ -10,4 +10,8 @@ var (
 	ErrServiceBusy        = errors.New("service temporarily unavailable")
 	ErrStorageUnavailable = errors.New("storage backend is not configured")
 	ErrExtractFailed      = errors.New("failed to extract receipt data")
+
+	ErrUnauthorized     = errors.New("unauthorized")
+	ErrInvalidGoogleToken = errors.New("invalid google token")
+	ErrQuotaExceeded    = errors.New("Free quota and credits are exhausted")
 )

@@ -6,28 +6,4 @@
 
 package di
 
-import (
-	"context"
-
-	httpadapter "github.com/arifin2018/splitbill-arifin.git/internal/adapter/http"
-	"github.com/arifin2018/splitbill-arifin.git/internal/config"
-	"github.com/arifin2018/splitbill-arifin.git/internal/service"
-)
-
-func InitializeRouter(ctx context.Context, cfg *config.Config) (*httpadapter.Router, error) {
-	log, err := provideLogger(cfg)
-	if err != nil {
-		return nil, err
-	}
-	uploader, err := provideStorage(ctx, cfg, log)
-	if err != nil {
-		return nil, err
-	}
-	extractor, err := provideExtractor(ctx, cfg, log)
-	if err != nil {
-		return nil, err
-	}
-	svc := service.NewSplitbillService(uploader, extractor, log, cfg)
-	handler := httpadapter.NewSplitbillHandler(svc, log, cfg)
-	return httpadapter.NewRouter(handler, cfg, log), nil
-}
+// InitializeRouter is implemented in providers.go for Monetization Phase 0–1 wiring.

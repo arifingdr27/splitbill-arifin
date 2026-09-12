@@ -15,13 +15,15 @@ import (
 
 type SplitbillHandler struct {
 	svc            *service.SplitbillService
+	quota          *service.QuotaService
 	log            *logrus.Logger
 	maxUploadBytes int
 }
 
-func NewSplitbillHandler(svc *service.SplitbillService, log *logrus.Logger, cfg *config.Config) *SplitbillHandler {
+func NewSplitbillHandler(svc *service.SplitbillService, quota *service.QuotaService, log *logrus.Logger, cfg *config.Config) *SplitbillHandler {
 	return &SplitbillHandler{
 		svc:            svc,
+		quota:          quota,
 		log:            log,
 		maxUploadBytes: cfg.HTTPBodyLimitBytes,
 	}
@@ -36,11 +38,27 @@ func NewSplitbillHandler(svc *service.SplitbillService, log *logrus.Logger, cfg 
 // @Param image formData file true "Receipt image file (jpg, jpeg, png)"
 // @Success 200 {object} domain.SplitbillResult "Successfully processed receipt"
 // @Failure 400 {object} domain.ErrorResponse "Invalid request"
+// @Failure 401 {object} domain.ErrorResponse "Unauthorized"
+// @Failure 402 {object} domain.QuotaExceededResponse "Quota exceeded"
 // @Failure 413 {object} domain.ErrorResponse "Payload too large"
 // @Failure 422 {object} domain.ErrorResponse "Failed to process receipt"
 // @Failure 429 {object} domain.ErrorResponse "Too many requests"
 // @Router /api/v2 [post]
 func (h *SplitbillHandler) Extract(c *fiber.Ctx) error {
+	userID, err := UserIDFromCtx(c)
+	if err != nil {
+		return writeError(c, err)
+	}
+
+	if _, err := h.quota.AssertAvailable(c.UserContext(), userID); err != nil {
+		if errors.Is(err, domain.ErrQuotaExceeded) {
+			snap, _ := h.quota.Snapshot(c.UserContext(), userID)
+			return writeQuotaExceeded(c, snap)
+		}
+		h.log.WithError(err).Error("quota assert failed")
+		return writeError(c, err)
+	}
+
 	fileHeader, err := c.FormFile("image")
 	if err != nil {
 		h.log.Warnf("missing image form field: %v", err)
@@ -81,6 +99,10 @@ func (h *SplitbillHandler) Extract(c *fiber.Ctx) error {
 	if err != nil {
 		h.log.Errorf("extract receipt failed: %v", err)
 		return writeError(c, err)
+	}
+
+	if _, err := h.quota.DebitOnSuccess(c.UserContext(), userID); err != nil {
+		h.log.WithError(err).WithField("user_id", userID.String()).Error("quota debit after OCR success failed")
 	}
 	return writeSuccess(c, result)
 }

@@ -30,6 +30,8 @@ const (
 	DefaultExtractProvider = "gemini,groq"
 	DefaultStorageRetentionDays      = 14
 	DefaultStorageCleanupIntervalHrs = 24
+	DefaultFreeOCRLimit              = 5
+	DefaultJWTTTLDays                = 30
 )
 
 type Config struct {
@@ -61,6 +63,12 @@ type Config struct {
 
 	StorageRetentionDays      int
 	StorageCleanupIntervalHrs int
+
+	DatabaseURL    string
+	JWTSecret      string
+	JWTTTLDays     int
+	GoogleClientID string
+	FreeOCRLimit   int
 }
 
 func Load(envFiles ...string) (*Config, error) {
@@ -104,6 +112,12 @@ func Load(envFiles ...string) (*Config, error) {
 		ExtractProviders:     providers,
 		StorageRetentionDays:      getEnvInt("STORAGE_RETENTION_DAYS", DefaultStorageRetentionDays),
 		StorageCleanupIntervalHrs: getEnvInt("STORAGE_CLEANUP_INTERVAL_HOURS", DefaultStorageCleanupIntervalHrs),
+
+		DatabaseURL:    os.Getenv("DATABASE_URL"),
+		JWTSecret:      os.Getenv("JWT_SECRET"),
+		JWTTTLDays:     getEnvInt("JWT_TTL_DAYS", DefaultJWTTTLDays),
+		GoogleClientID: os.Getenv("GOOGLE_CLIENT_ID"),
+		FreeOCRLimit:   getEnvInt("FREE_OCR_LIMIT", DefaultFreeOCRLimit),
 	}
 
 	if err := cfg.validate(); err != nil {
@@ -135,6 +149,21 @@ func (c *Config) UsesGroq() bool {
 }
 
 func (c *Config) validate() error {
+	if c.DatabaseURL == "" {
+		return fmt.Errorf("DATABASE_URL is required")
+	}
+	if c.JWTSecret == "" {
+		return fmt.Errorf("JWT_SECRET is required")
+	}
+	if c.GoogleClientID == "" {
+		return fmt.Errorf("GOOGLE_CLIENT_ID is required")
+	}
+	if c.JWTTTLDays < 1 {
+		return fmt.Errorf("JWT_TTL_DAYS must be >= 1")
+	}
+	if c.FreeOCRLimit < 1 {
+		return fmt.Errorf("FREE_OCR_LIMIT must be >= 1")
+	}
 	if c.UsesGemini() && c.GeminiAPIKey == "" {
 		return fmt.Errorf("GEMINI_API_KEY is required when EXTRACT_PROVIDER includes gemini")
 	}

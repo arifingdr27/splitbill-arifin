@@ -51,6 +51,12 @@ type ErrorResponse struct {
 	Status string `json:"status" example:"Error uploading image"`
 }
 
+type QuotaExceededResponse struct {
+	Status string         `json:"status"`
+	Data   string         `json:"data"`
+	Quota  QuotaSnapshot  `json:"quota"`
+}
+
 // ImageInput carries receipt image bytes for the extract use-case.
 type ImageInput struct {
 	Filename    string

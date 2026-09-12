@@ -11,11 +11,30 @@ func writeSuccess(c *fiber.Ctx, data any) error {
 	return c.Status(fiber.StatusOK).JSON(data)
 }
 
+func writeQuotaExceeded(c *fiber.Ctx, snap *domain.QuotaSnapshot) error {
+	if snap == nil {
+		snap = &domain.QuotaSnapshot{TotalRemaining: 0}
+	}
+	return c.Status(fiber.StatusPaymentRequired).JSON(domain.QuotaExceededResponse{
+		Status: "quota_exceeded",
+		Data:   domain.ErrQuotaExceeded.Error(),
+		Quota:  *snap,
+	})
+}
+
 func writeError(c *fiber.Ctx, err error) error {
 	status := fiber.StatusUnprocessableEntity
 	msg := "failed to process receipt"
 
 	switch {
+	case errors.Is(err, domain.ErrUnauthorized):
+		status = fiber.StatusUnauthorized
+		msg = "unauthorized"
+	case errors.Is(err, domain.ErrInvalidGoogleToken):
+		status = fiber.StatusUnauthorized
+		msg = "invalid google token"
+	case errors.Is(err, domain.ErrQuotaExceeded):
+		return writeQuotaExceeded(c, nil)
 	case errors.Is(err, domain.ErrImageRequired):
 		status = fiber.StatusBadRequest
 		msg = domain.ErrImageRequired.Error()

@@ -25,8 +25,8 @@ Overlap: rate limit, CORS, timeout, error sanitize di SDS digabung ke fondasi mo
 
 ## 2. Urutan praktis (hemat waktu)
 
-1. **Security Phase 1** — proteksi biaya sebelum auth/payment  
-2. **Monetization 0–1** — login + kuota  
+1. ~~**Security Phase 1** — proteksi biaya sebelum auth/payment~~ ✅ **selesai**
+2. **Monetization 0–1** — login + kuota ← *sedang dikerjakan*
 3. **Monetization 2** — payment  
 4. **Security Phase 2** sisa yang belum tertutup auth/quota user  
 
@@ -42,23 +42,23 @@ Jika FE & BE dikerjakan orang berbeda: FE mulai setelah kontrak API Monetization
 
 ## 3. Pecahan Frontend vs Backend
 
-### 3.1 Security Phase 1 (~1–2 hari)
+### 3.1 Security Phase 1 (~1–2 hari) — ✅ SELESAI
 
-| Layer | Kerjaan | Estimasi |
-|-------|---------|----------|
-| **BE** | BodyLimit, timeout, rate limit IP, semaphore Gemini, CORS ketat, sanitize error, hide Swagger, reject upload oversized | 1–2 hari |
-| **FE** | Hampir tidak ada; opsional tampilkan pesan generik untuk HTTP 429 | ~0 |
+| Layer | Kerjaan | Estimasi | Status |
+|-------|---------|----------|--------|
+| **BE** | BodyLimit, timeout, rate limit IP, semaphore Gemini, CORS ketat, sanitize error, hide Swagger, reject upload oversized | 1–2 hari | **Done** (`release/v1.0.0`) |
+| **FE** | Hampir tidak ada; opsional tampilkan pesan generik untuk HTTP 429 | ~0 | N/A |
 
-→ Hampir **100% backend**.
+→ Hampir **100% backend**. Selesai dikerjakan (termasuk BodyLimit 5 MiB, Groq failover, cleanup storage 14 hari).
 
 ---
 
-### 3.2 Monetization Phase 0–1 (~1–1.5 minggu)
+### 3.2 Monetization Phase 0–1 (~1–1.5 minggu) — 🚧 IN PROGRESS
 
-| Layer | Kerjaan | Estimasi |
-|-------|---------|----------|
-| **BE** | Postgres + migrasi + Wire; Google verify + JWT; `usage_monthly`; enforce kuota di `POST /api/v2`; `GET /me/quota` | 3–5 hari |
-| **FE** | Modal/tombol Google login; simpan JWT; kirim `Authorization` di upload; tampil sisa kuota; handle 401 & 402 | 2–3 hari |
+| Layer | Kerjaan | Estimasi | Status |
+|-------|---------|----------|--------|
+| **BE** | Postgres + migrasi + Wire; Google verify + JWT; `usage_monthly`; enforce kuota di `POST /api/v2`; `GET /me/quota` | 3–5 hari | Implemented (pending deploy/test) |
+| **FE** | Modal/tombol Google login; simpan JWT; kirim `Authorization` di upload; tampil sisa kuota; handle 401 & 402 | 2–3 hari | Implemented (pending deploy/test) |
 
 → Bisa paralel: BE dulu endpoint auth/quota; FE sambung setelah API siap (atau mock sementara).
 
@@ -102,11 +102,11 @@ Jika FE & BE dikerjakan orang berbeda: FE mulai setelah kontrak API Monetization
 
 ### security-sds.md
 
-| Fase | Estimasi di SDS | Fokus |
-|------|-----------------|--------|
-| Phase 1 | 1–2 hari | Rate limit, size, timeout, concurrency, CORS, sanitize, Swagger |
-| Phase 2 | 2–4 hari | API key, daily quota IP, magic-byte, retention, FE headers |
-| Phase 3+ | Sedang–tinggi | Redis, CAPTCHA, WAF — di luar estimasi MVP ini |
+| Fase | Estimasi di SDS | Fokus | Status |
+|------|-----------------|--------|--------|
+| Phase 1 | 1–2 hari | Rate limit, size, timeout, concurrency, CORS, sanitize, Swagger | ✅ Selesai |
+| Phase 2 | 2–4 hari | API key, daily quota IP, magic-byte, retention, FE headers | Partial (retention done) |
+| Phase 3+ | Sedang–tinggi | Redis, CAPTCHA, WAF — di luar estimasi MVP ini | — |
 
 ### monetization-technical-design.md
 
@@ -123,4 +123,5 @@ Jika FE & BE dikerjakan orang berbeda: FE mulai setelah kontrak API Monetization
 
 | Tanggal | Perubahan |
 |---------|-----------|
+| 2026-09-12 | Tandai Security Phase 1 selesai; Monetization 0–1 in progress |
 | 2026-09-12 | Draft awal estimasi + pecahan FE/BE + urutan praktis |

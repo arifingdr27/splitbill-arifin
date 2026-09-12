@@ -14,14 +14,23 @@ import (
 
 var appSet = wire.NewSet(
 	provideLogger,
+	providePool,
+	provideUserRepo,
+	provideUsageRepo,
+	provideGoogleVerifier,
+	provideTokenIssuer,
+	provideAuthService,
+	provideQuotaService,
 	provideStorage,
 	provideExtractor,
 	service.NewSplitbillService,
 	httpadapter.NewSplitbillHandler,
+	httpadapter.NewAuthHandler,
+	httpadapter.NewQuotaHandler,
 	httpadapter.NewRouter,
 )
 
-func InitializeRouter(ctx context.Context, cfg *config.Config) (*httpadapter.Router, error) {
+func InitializeRouterWire(ctx context.Context, cfg *config.Config) (*httpadapter.Router, error) {
 	wire.Build(appSet)
 	return nil, nil
 }
