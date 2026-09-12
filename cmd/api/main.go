@@ -9,6 +9,7 @@ import (
 
 	_ "github.com/arifin2018/splitbill-arifin.git/docs"
 	httpadapter "github.com/arifin2018/splitbill-arifin.git/internal/adapter/http"
+	"github.com/arifin2018/splitbill-arifin.git/internal/adapter/storage"
 	"github.com/arifin2018/splitbill-arifin.git/internal/config"
 	"github.com/arifin2018/splitbill-arifin.git/internal/di"
 	"github.com/gofiber/fiber/v2"
@@ -32,10 +33,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	router, err := di.InitializeRouter(ctx, cfg)
 	if err != nil {
 		log.Fatalf("dependency init failed: %v", err)
+	}
+
+	if cfg.BucketStorage == config.StorageVM {
+		storage.StartLocalImageCleanup(ctx, cfg.StorageLocalPath, cfg.StorageRetentionDays, cfg.StorageCleanupIntervalHrs, log)
 	}
 
 	app := fiber.New(fiber.Config{
@@ -64,6 +71,7 @@ func main() {
 	<-quit
 
 	log.Info("shutting down...")
+	cancel()
 	_ = app.Shutdown()
 	log.Info("cleanup done")
 }

@@ -28,6 +28,8 @@ const (
 	// Groq decommissioned llama-3.2-11b-vision-preview; Scout is the official replacement.
 	DefaultGroqModel       = "meta-llama/llama-4-scout-17b-16e-instruct"
 	DefaultExtractProvider = "gemini,groq"
+	DefaultStorageRetentionDays      = 14
+	DefaultStorageCleanupIntervalHrs = 24
 )
 
 type Config struct {
@@ -56,6 +58,9 @@ type Config struct {
 	GroqTimeout          time.Duration
 	// ExtractProviders is an ordered list: gemini and/or groq.
 	ExtractProviders []string
+
+	StorageRetentionDays      int
+	StorageCleanupIntervalHrs int
 }
 
 func Load(envFiles ...string) (*Config, error) {
@@ -97,6 +102,8 @@ func Load(envFiles ...string) (*Config, error) {
 		GroqModel:            getEnv("GROQ_MODEL", DefaultGroqModel),
 		GroqTimeout:          time.Duration(groqSec) * time.Second,
 		ExtractProviders:     providers,
+		StorageRetentionDays:      getEnvInt("STORAGE_RETENTION_DAYS", DefaultStorageRetentionDays),
+		StorageCleanupIntervalHrs: getEnvInt("STORAGE_CLEANUP_INTERVAL_HOURS", DefaultStorageCleanupIntervalHrs),
 	}
 
 	if err := cfg.validate(); err != nil {
@@ -159,6 +166,14 @@ func (c *Config) validate() error {
 	}
 	if c.UsesGroq() && c.GroqTimeout < time.Second {
 		return fmt.Errorf("GROQ_TIMEOUT_SEC must be >= 1")
+	}
+	if c.BucketStorage == StorageVM {
+		if c.StorageRetentionDays < 1 {
+			return fmt.Errorf("STORAGE_RETENTION_DAYS must be >= 1")
+		}
+		if c.StorageCleanupIntervalHrs < 1 {
+			return fmt.Errorf("STORAGE_CLEANUP_INTERVAL_HOURS must be >= 1")
+		}
 	}
 	return nil
 }
