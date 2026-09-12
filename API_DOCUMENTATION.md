@@ -26,7 +26,7 @@ go run ./cmd/api
 | `APP_ENV` | Environment name | `development` |
 | `CORS_ALLOW_ORIGINS` | CORS origins | `*` |
 | `GEMINI_API_KEY` | Google Gemini API key | required |
-| `GEMINI_MODEL` | Gemini model | `gemini-2.0-flash` |
+| `GEMINI_MODEL` | Gemini model | `gemini-3.6-flash` |
 | `BUCKET_STORAGE` | `VM` or `FIREBASE` | `VM` |
 | `STORAGE_LOCAL_PATH` | Local upload path | `./storage/public` |
 | `FIREBASE_SERVICE_ACCOUNT_KEY_PATH` | Service account JSON | `./storage/firebase-adminsdk.json` |

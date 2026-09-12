@@ -14,12 +14,12 @@ const (
 )
 
 type Config struct {
-	AppPort        string
-	AppEnv         string
-	CORSOrigins    string
-	GeminiAPIKey   string
-	GeminiModel    string
-	BucketStorage  string
+	AppPort          string
+	AppEnv           string
+	CORSOrigins      string
+	GeminiAPIKey     string
+	GeminiModel      string
+	BucketStorage    string
 	StorageLocalPath string
 	FirebaseCredPath string
 	FirebaseBucket   string
@@ -35,7 +35,7 @@ func Load(envFiles ...string) (*Config, error) {
 		AppEnv:           getEnv("APP_ENV", "development"),
 		CORSOrigins:      getEnv("CORS_ALLOW_ORIGINS", "*"),
 		GeminiAPIKey:     os.Getenv("GEMINI_API_KEY"),
-		GeminiModel:      getEnv("GEMINI_MODEL", "gemini-2.0-flash"),
+		GeminiModel:      getEnv("GEMINI_MODEL", "gemini-3.6-flash"),
 		BucketStorage:    strings.ToUpper(getEnv("BUCKET_STORAGE", StorageVM)),
 		StorageLocalPath: getEnv("STORAGE_LOCAL_PATH", "./storage/public"),
 		FirebaseCredPath: getEnv("FIREBASE_SERVICE_ACCOUNT_KEY_PATH", "./storage/firebase-adminsdk.json"),
