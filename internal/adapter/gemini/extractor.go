@@ -4,28 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
+	"github.com/arifin2018/splitbill-arifin.git/internal/adapter/receiptprompt"
 	"github.com/arifin2018/splitbill-arifin.git/internal/domain"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/genai"
 )
 
 const maxExtractAttempts = 2
-
-const extractPrompt = `Lakukan Optical Character Recognition (OCR) pada gambar struk ini dan ekstrak informasi belanja.
-Kembalikan HANYA JSON valid sesuai schema, tanpa markdown, tanpa penjelasan, tanpa teks di luar JSON.
-
-Aturan field:
-- items: daftar barang dari struk
-- price: harga per unit; jika tidak ada kolom terpisah, hitung total/quantity; jika tidak bisa, "0"
-- quantity, total: sesuai struk
-- nilai numerik: desimal tanpa pemisah ribuan (contoh "220000.00")
-- field tidak ditemukan: string kosong ""
-- date: DD/MM/YYYY
-- time: HH:MM
-- discount: angka desimal; jika tidak ada, "0"`
 
 type Extractor struct {
 	client  *genai.Client
@@ -54,7 +41,7 @@ func (e *Extractor) Extract(ctx context.Context, image []byte, mimeType string) 
 	}
 
 	parts := []*genai.Part{
-		genai.NewPartFromText(extractPrompt),
+		genai.NewPartFromText(receiptprompt.Extract),
 		{InlineData: &genai.Blob{MIMEType: mimeType, Data: image}},
 	}
 	contents := []*genai.Content{
@@ -77,7 +64,7 @@ func (e *Extractor) Extract(ctx context.Context, image []byte, mimeType string) 
 		}
 
 		raw := result.Text()
-		cleaned := cleanJSON(raw)
+		cleaned := receiptprompt.CleanJSON(raw)
 		e.log.Debugf("gemini attempt=%d raw_len=%d cleaned_len=%d", attempt, len(raw), len(cleaned))
 
 		if cleaned == "" {
@@ -89,7 +76,7 @@ func (e *Extractor) Extract(ctx context.Context, image []byte, mimeType string) 
 		var out domain.SplitbillResult
 		if err := json.Unmarshal([]byte(cleaned), &out); err != nil {
 			lastErr = err
-			e.log.Errorf("gemini attempt=%d unmarshal failed cleaned=%q err=%v", attempt, truncate(cleaned, 500), err)
+			e.log.Errorf("gemini attempt=%d unmarshal failed cleaned=%q err=%v", attempt, receiptprompt.Truncate(cleaned, 500), err)
 			continue
 		}
 		return &out, nil
@@ -164,32 +151,4 @@ func receiptSchema() *genai.Schema {
 		},
 		Required: []string{"items", "store_information", "totals", "transaction_information"},
 	}
-}
-
-func cleanJSON(raw string) string {
-	s := strings.TrimSpace(raw)
-	s = strings.TrimPrefix(s, "\uFEFF")
-
-	if strings.HasPrefix(s, "```json") {
-		s = strings.TrimPrefix(s, "```json")
-	} else if strings.HasPrefix(s, "```") {
-		s = strings.TrimPrefix(s, "```")
-	}
-	s = strings.TrimSpace(s)
-	s = strings.TrimSuffix(s, "```")
-	s = strings.TrimSpace(s)
-
-	start := strings.Index(s, "{")
-	end := strings.LastIndex(s, "}")
-	if start >= 0 && end > start {
-		s = s[start : end+1]
-	}
-	return strings.TrimSpace(s)
-}
-
-func truncate(s string, n int) string {
-	if len(s) <= n {
-		return s
-	}
-	return s[:n] + "..."
 }

@@ -21,7 +21,8 @@ const (
 	DefaultHTTPConcurrency    = 128
 	DefaultRateLimitRPM       = 5
 	DefaultExtractMaxConcurrent = 5
-	DefaultGeminiTimeoutSec   = 25
+	DefaultGeminiTimeoutSec     = 25
+	DefaultGroqModel            = "llama-3.1-8b-instant"
 )
 
 type Config struct {
@@ -45,6 +46,9 @@ type Config struct {
 	RateLimitRPM         int
 	ExtractMaxConcurrent int
 	GeminiTimeout        time.Duration
+	GroqAPIKey           string
+	GroqModel            string
+	GroqTimeout          time.Duration
 }
 
 func Load(envFiles ...string) (*Config, error) {
@@ -54,6 +58,7 @@ func Load(envFiles ...string) (*Config, error) {
 	writeSec := getEnvInt("HTTP_WRITE_TIMEOUT_SEC", DefaultWriteTimeoutSec)
 	idleSec := getEnvInt("HTTP_IDLE_TIMEOUT_SEC", DefaultIdleTimeoutSec)
 	geminiSec := getEnvInt("GEMINI_TIMEOUT_SEC", DefaultGeminiTimeoutSec)
+	groqSec := getEnvInt("GROQ_TIMEOUT_SEC", geminiSec)
 
 	cfg := &Config{
 		AppPort:          getEnv("APP_PORT", "3000"),
@@ -76,6 +81,9 @@ func Load(envFiles ...string) (*Config, error) {
 		RateLimitRPM:         getEnvInt("RATE_LIMIT_RPM", DefaultRateLimitRPM),
 		ExtractMaxConcurrent: getEnvInt("EXTRACT_MAX_CONCURRENT", DefaultExtractMaxConcurrent),
 		GeminiTimeout:        time.Duration(geminiSec) * time.Second,
+		GroqAPIKey:           os.Getenv("GROQ_API_KEY"),
+		GroqModel:            getEnv("GROQ_MODEL", DefaultGroqModel),
+		GroqTimeout:          time.Duration(groqSec) * time.Second,
 	}
 
 	if err := cfg.validate(); err != nil {
@@ -114,6 +122,9 @@ func (c *Config) validate() error {
 	}
 	if c.GeminiTimeout < time.Second {
 		return fmt.Errorf("GEMINI_TIMEOUT_SEC must be >= 1")
+	}
+	if c.GroqAPIKey != "" && c.GroqTimeout < time.Second {
+		return fmt.Errorf("GROQ_TIMEOUT_SEC must be >= 1")
 	}
 	return nil
 }
