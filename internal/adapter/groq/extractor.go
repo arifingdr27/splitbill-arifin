@@ -35,7 +35,7 @@ func NewExtractor(apiKey, model string, timeout time.Duration, log *logrus.Logge
 		return nil, fmt.Errorf("GROQ_API_KEY is required")
 	}
 	if model == "" {
-		model = "llama-3.1-8b-instant"
+		model = "meta-llama/llama-4-scout-17b-16e-instruct"
 	}
 	if timeout < time.Second {
 		timeout = 25 * time.Second
@@ -51,6 +51,11 @@ func NewExtractor(apiKey, model string, timeout time.Duration, log *logrus.Logge
 }
 
 func (e *Extractor) Extract(ctx context.Context, image []byte, mimeType string) (*domain.SplitbillResult, error) {
+	e.log.WithFields(logrus.Fields{
+		"provider": "groq",
+		"model":    e.model,
+	}).Info("extract using provider")
+
 	if mimeType == "" {
 		mimeType = "image/jpeg"
 	}

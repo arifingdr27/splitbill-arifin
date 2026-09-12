@@ -36,6 +36,11 @@ func NewExtractor(ctx context.Context, apiKey, model string, timeout time.Durati
 }
 
 func (e *Extractor) Extract(ctx context.Context, image []byte, mimeType string) (*domain.SplitbillResult, error) {
+	e.log.WithFields(logrus.Fields{
+		"provider": "gemini",
+		"model":    e.model,
+	}).Info("extract using provider")
+
 	if mimeType == "" {
 		mimeType = "image/jpeg"
 	}

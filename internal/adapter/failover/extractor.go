@@ -34,6 +34,6 @@ func (e *Extractor) Extract(ctx context.Context, image []byte, mimeType string) 
 		e.log.WithError(fbErr).Error("fallback extractor failed")
 		return nil, domain.ErrExtractFailed
 	}
-	e.log.Info("fallback extractor succeeded")
+	e.log.Info("extract completed via fallback provider")
 	return fb, nil
 }

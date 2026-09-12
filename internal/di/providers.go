@@ -2,6 +2,8 @@ package di
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/arifin2018/splitbill-arifin.git/internal/adapter/failover"
 	"github.com/arifin2018/splitbill-arifin.git/internal/adapter/gemini"
@@ -18,21 +20,35 @@ func provideLogger(cfg *config.Config) (*logrus.Logger, error) {
 }
 
 func provideExtractor(ctx context.Context, cfg *config.Config, log *logrus.Logger) (port.ReceiptExtractor, error) {
-	primary, err := gemini.NewExtractor(ctx, cfg.GeminiAPIKey, cfg.GeminiModel, cfg.GeminiTimeout, log)
-	if err != nil {
-		return nil, err
-	}
-	if cfg.GroqAPIKey == "" {
-		log.Info("GROQ_API_KEY not set; Gemini-only extract (no fallback)")
-		return primary, nil
+	var chain []port.ReceiptExtractor
+	var labels []string
+
+	for _, name := range cfg.ExtractProviders {
+		switch name {
+		case config.ProviderGemini:
+			ex, err := gemini.NewExtractor(ctx, cfg.GeminiAPIKey, cfg.GeminiModel, cfg.GeminiTimeout, log)
+			if err != nil {
+				return nil, err
+			}
+			chain = append(chain, ex)
+			labels = append(labels, fmt.Sprintf("gemini(%s)", cfg.GeminiModel))
+		case config.ProviderGroq:
+			ex, err := groq.NewExtractor(cfg.GroqAPIKey, cfg.GroqModel, cfg.GroqTimeout, log)
+			if err != nil {
+				return nil, err
+			}
+			chain = append(chain, ex)
+			labels = append(labels, fmt.Sprintf("groq(%s)", cfg.GroqModel))
+		default:
+			return nil, fmt.Errorf("unknown extract provider %q", name)
+		}
 	}
 
-	secondary, err := groq.NewExtractor(cfg.GroqAPIKey, cfg.GroqModel, cfg.GroqTimeout, log)
-	if err != nil {
-		return nil, err
+	log.Infof("extract providers: %s", strings.Join(labels, " -> "))
+	if len(chain) == 1 {
+		return chain[0], nil
 	}
-	log.Infof("extract failover enabled: gemini(%s) -> groq(%s)", cfg.GeminiModel, cfg.GroqModel)
-	return failover.New(primary, secondary, log), nil
+	return failover.New(chain[0], chain[1], log), nil
 }
 
 func provideStorage(ctx context.Context, cfg *config.Config, log *logrus.Logger) (port.StorageUploader, error) {

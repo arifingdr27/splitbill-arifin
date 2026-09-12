@@ -14,15 +14,20 @@ const (
 	StorageVM       = "VM"
 	StorageFirebase = "FIREBASE"
 
-	DefaultBodyLimitBytes     = 5 * 1024 * 1024
-	DefaultReadTimeoutSec     = 30
-	DefaultWriteTimeoutSec    = 60
-	DefaultIdleTimeoutSec     = 60
-	DefaultHTTPConcurrency    = 128
-	DefaultRateLimitRPM       = 5
+	ProviderGemini = "gemini"
+	ProviderGroq   = "groq"
+
+	DefaultBodyLimitBytes       = 5 * 1024 * 1024
+	DefaultReadTimeoutSec       = 30
+	DefaultWriteTimeoutSec      = 60
+	DefaultIdleTimeoutSec       = 60
+	DefaultHTTPConcurrency      = 128
+	DefaultRateLimitRPM         = 5
 	DefaultExtractMaxConcurrent = 5
 	DefaultGeminiTimeoutSec     = 25
-	DefaultGroqModel            = "llama-3.1-8b-instant"
+	// Groq decommissioned llama-3.2-11b-vision-preview; Scout is the official replacement.
+	DefaultGroqModel       = "meta-llama/llama-4-scout-17b-16e-instruct"
+	DefaultExtractProvider = "gemini,groq"
 )
 
 type Config struct {
@@ -49,6 +54,8 @@ type Config struct {
 	GroqAPIKey           string
 	GroqModel            string
 	GroqTimeout          time.Duration
+	// ExtractProviders is an ordered list: gemini and/or groq.
+	ExtractProviders []string
 }
 
 func Load(envFiles ...string) (*Config, error) {
@@ -59,6 +66,11 @@ func Load(envFiles ...string) (*Config, error) {
 	idleSec := getEnvInt("HTTP_IDLE_TIMEOUT_SEC", DefaultIdleTimeoutSec)
 	geminiSec := getEnvInt("GEMINI_TIMEOUT_SEC", DefaultGeminiTimeoutSec)
 	groqSec := getEnvInt("GROQ_TIMEOUT_SEC", geminiSec)
+
+	providers, err := parseExtractProviders(getEnv("EXTRACT_PROVIDER", DefaultExtractProvider))
+	if err != nil {
+		return nil, err
+	}
 
 	cfg := &Config{
 		AppPort:          getEnv("APP_PORT", "3000"),
@@ -84,6 +96,7 @@ func Load(envFiles ...string) (*Config, error) {
 		GroqAPIKey:           os.Getenv("GROQ_API_KEY"),
 		GroqModel:            getEnv("GROQ_MODEL", DefaultGroqModel),
 		GroqTimeout:          time.Duration(groqSec) * time.Second,
+		ExtractProviders:     providers,
 	}
 
 	if err := cfg.validate(); err != nil {
@@ -96,9 +109,30 @@ func (c *Config) IsProduction() bool {
 	return strings.EqualFold(c.AppEnv, "production")
 }
 
+func (c *Config) UsesGemini() bool {
+	for _, p := range c.ExtractProviders {
+		if p == ProviderGemini {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Config) UsesGroq() bool {
+	for _, p := range c.ExtractProviders {
+		if p == ProviderGroq {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *Config) validate() error {
-	if c.GeminiAPIKey == "" {
-		return fmt.Errorf("GEMINI_API_KEY is required")
+	if c.UsesGemini() && c.GeminiAPIKey == "" {
+		return fmt.Errorf("GEMINI_API_KEY is required when EXTRACT_PROVIDER includes gemini")
+	}
+	if c.UsesGroq() && c.GroqAPIKey == "" {
+		return fmt.Errorf("GROQ_API_KEY is required when EXTRACT_PROVIDER includes groq")
 	}
 	switch c.BucketStorage {
 	case StorageVM, StorageFirebase:
@@ -120,13 +154,51 @@ func (c *Config) validate() error {
 	if c.ExtractMaxConcurrent < 1 {
 		return fmt.Errorf("EXTRACT_MAX_CONCURRENT must be > 0")
 	}
-	if c.GeminiTimeout < time.Second {
+	if c.UsesGemini() && c.GeminiTimeout < time.Second {
 		return fmt.Errorf("GEMINI_TIMEOUT_SEC must be >= 1")
 	}
-	if c.GroqAPIKey != "" && c.GroqTimeout < time.Second {
+	if c.UsesGroq() && c.GroqTimeout < time.Second {
 		return fmt.Errorf("GROQ_TIMEOUT_SEC must be >= 1")
 	}
 	return nil
+}
+
+// parseExtractProviders accepts:
+//   - gemini | groq
+//   - both (= gemini,groq)
+//   - gemini,groq | groq,gemini  (order = try order)
+func parseExtractProviders(raw string) ([]string, error) {
+	raw = strings.TrimSpace(strings.ToLower(raw))
+	if raw == "" {
+		raw = DefaultExtractProvider
+	}
+	if raw == "both" {
+		return []string{ProviderGemini, ProviderGroq}, nil
+	}
+
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	seen := map[string]bool{}
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		switch p {
+		case ProviderGemini, ProviderGroq:
+			if seen[p] {
+				continue
+			}
+			seen[p] = true
+			out = append(out, p)
+		default:
+			return nil, fmt.Errorf("EXTRACT_PROVIDER invalid value %q (use gemini, groq, both, or gemini,groq)", p)
+		}
+	}
+	if len(out) == 0 {
+		return nil, fmt.Errorf("EXTRACT_PROVIDER must list at least one provider")
+	}
+	return out, nil
 }
 
 func getEnv(key, fallback string) string {
