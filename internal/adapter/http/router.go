@@ -17,6 +17,5 @@ func (r *Router) Mount(app *fiber.App) {
 	app.Get("/swagger/*", fiberSwagger.WrapHandler)
 
 	v2 := app.Group("/api/v2")
-	v2.Post("/", r.handler.Extract)
 	v2.Post("", r.handler.Extract)
 }
