@@ -14,7 +14,7 @@ const (
 	StorageVM       = "VM"
 	StorageFirebase = "FIREBASE"
 
-	DefaultBodyLimitBytes     = 2 * 1024 * 1024
+	DefaultBodyLimitBytes     = 5 * 1024 * 1024
 	DefaultReadTimeoutSec     = 30
 	DefaultWriteTimeoutSec    = 60
 	DefaultIdleTimeoutSec     = 60

@@ -12,7 +12,7 @@ services:
       STORAGE_LOCAL_PATH: /app/storage/public
       LOG_DIR: /app/storage/logs
       # Security Phase 1 defaults (override in .env for production)
-      HTTP_BODY_LIMIT_BYTES: "2097152"
+      HTTP_BODY_LIMIT_BYTES: "5242880"
       RATE_LIMIT_RPM: "5"
       EXTRACT_MAX_CONCURRENT: "5"
       GEMINI_TIMEOUT_SEC: "25"
