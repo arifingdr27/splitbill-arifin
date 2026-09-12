@@ -11,45 +11,20 @@ import (
 	"google.golang.org/genai"
 )
 
-const extractPrompt = `Tolong lakukan Optical Character Recognition (OCR) pada gambar struk ini dan ekstrak informasi belanja. Kembalikan hasilnya dalam format JSON dengan struktur berikut:
-{
-  "items": [
-    {
-      "name": "[Nama Barang 1]",
-      "price": "[Harga per Unit 1] - Jika tidak tersedia secara eksplisit sebagai kolom terpisah, hitung sebagai [Total Harga Item 1] dibagi [Kuantitas 1]. Jika pembagian menghasilkan angka tidak terbatas (misalnya, total 0 dan kuantitas 0), gunakan 0.",
-      "quantity": "[Kuantitas 1]",
-      "total": "[Total Harga Item 1]"
-    }
-  ],
-  "store_information": {
-    "address": "[Alamat Toko]",
-    "email": "[Email Toko]",
-    "npwp": "[NPWP Toko]",
-    "phone_number": "[Nomor Telepon Toko]",
-    "store_name": "[Nama Toko]"
-  },
-  "totals": {
-    "change": "[Uang Kembali]",
-    "discount": "[Nilai Diskon/Nilai Yang Dikurangi]. Kembalikan angka desimal tanpa pengurangan. Jika tidak ada diskon, gunakan 0.",
-    "payment": "[Jumlah Pembayaran]",
-    "subtotal": "[Subtotal]",
-    "tax": {
-      "amount": "[Nilai Pajak]",
-      "service_charge": "[Biaya Layanan]",
-      "dpp": "[Dasar Pengenaan Pajak]",
-      "name": "[Nama Pajak]",
-      "total_tax": "[Total Pajak dari service_charge + amount]"
-    },
-    "total": "[Total Belanja]"
-  },
-  "transaction_information": {
-    "date": "[Tanggal Transaksi] dalam format DD/MM/YYYY",
-    "time": "[Waktu Transaksi] dalam format HH:MM",
-    "transaction_id": "[ID Transaksi]"
-  }
-}
+const maxExtractAttempts = 2
 
-Pastikan semua nilai diisi sesuai dengan informasi yang tertera pada struk. Jika suatu informasi tidak ditemukan, gunakan nilai null atau string kosong untuk field yang sesuai. Untuk nilai numerik (harga, kuantitas, total, totals, discount, dll.), kembalikan dalam format desimal tanpa pemisah ribuan (misalnya, "220000.00" bukan "220,000.00").`
+const extractPrompt = `Lakukan Optical Character Recognition (OCR) pada gambar struk ini dan ekstrak informasi belanja.
+Kembalikan HANYA JSON valid sesuai schema, tanpa markdown, tanpa penjelasan, tanpa teks di luar JSON.
+
+Aturan field:
+- items: daftar barang dari struk
+- price: harga per unit; jika tidak ada kolom terpisah, hitung total/quantity; jika tidak bisa, "0"
+- quantity, total: sesuai struk
+- nilai numerik: desimal tanpa pemisah ribuan (contoh "220000.00")
+- field tidak ditemukan: string kosong ""
+- date: DD/MM/YYYY
+- time: HH:MM
+- discount: angka desimal; jika tidak ada, "0"`
 
 type Extractor struct {
 	client *genai.Client
@@ -81,28 +56,131 @@ func (e *Extractor) Extract(ctx context.Context, image []byte, mimeType string) 
 		genai.NewContentFromParts(parts, genai.RoleUser),
 	}
 
-	result, err := e.client.Models.GenerateContent(ctx, e.model, contents, nil)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", domain.ErrExtractFailed, err)
+	cfg := &genai.GenerateContentConfig{
+		ResponseMIMEType: "application/json",
+		ResponseSchema:   receiptSchema(),
 	}
 
-	cleaned := cleanJSON(result.Text())
-	e.log.Debugf("gemini raw response cleaned length=%d", len(cleaned))
+	var lastErr error
+	for attempt := 1; attempt <= maxExtractAttempts; attempt++ {
+		result, err := e.client.Models.GenerateContent(ctx, e.model, contents, cfg)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", domain.ErrExtractFailed, err)
+		}
 
-	var out domain.SplitbillResult
-	if err := json.Unmarshal([]byte(cleaned), &out); err != nil {
-		return nil, fmt.Errorf("%w: unmarshal: %v", domain.ErrExtractFailed, err)
+		raw := result.Text()
+		cleaned := cleanJSON(raw)
+		e.log.Debugf("gemini attempt=%d raw_len=%d cleaned_len=%d", attempt, len(raw), len(cleaned))
+
+		if cleaned == "" {
+			lastErr = fmt.Errorf("empty response")
+			e.log.Warnf("gemini attempt=%d empty cleaned response", attempt)
+			continue
+		}
+
+		var out domain.SplitbillResult
+		if err := json.Unmarshal([]byte(cleaned), &out); err != nil {
+			lastErr = err
+			e.log.Errorf("gemini attempt=%d unmarshal failed cleaned=%q err=%v", attempt, truncate(cleaned, 500), err)
+			continue
+		}
+		return &out, nil
 	}
-	return &out, nil
+
+	return nil, fmt.Errorf("%w: unmarshal: %v", domain.ErrExtractFailed, lastErr)
+}
+
+func receiptSchema() *genai.Schema {
+	str := &genai.Schema{Type: genai.TypeString}
+	item := &genai.Schema{
+		Type: genai.TypeObject,
+		Properties: map[string]*genai.Schema{
+			"name":     str,
+			"price":    str,
+			"quantity": str,
+			"total":    str,
+		},
+		Required: []string{"name", "price", "quantity", "total"},
+	}
+	tax := &genai.Schema{
+		Type: genai.TypeObject,
+		Properties: map[string]*genai.Schema{
+			"amount":         str,
+			"service_charge": str,
+			"dpp":            str,
+			"name":           str,
+			"total_tax":      str,
+		},
+		Required: []string{"amount", "service_charge", "dpp", "name", "total_tax"},
+	}
+	return &genai.Schema{
+		Type: genai.TypeObject,
+		Properties: map[string]*genai.Schema{
+			"items": {
+				Type:  genai.TypeArray,
+				Items: item,
+			},
+			"store_information": {
+				Type: genai.TypeObject,
+				Properties: map[string]*genai.Schema{
+					"address":      str,
+					"email":        str,
+					"npwp":         str,
+					"phone_number": str,
+					"store_name":   str,
+				},
+				Required: []string{"address", "email", "npwp", "phone_number", "store_name"},
+			},
+			"totals": {
+				Type: genai.TypeObject,
+				Properties: map[string]*genai.Schema{
+					"change":   str,
+					"discount": str,
+					"payment":  str,
+					"subtotal": str,
+					"tax":      tax,
+					"total":    str,
+				},
+				Required: []string{"change", "discount", "payment", "subtotal", "tax", "total"},
+			},
+			"transaction_information": {
+				Type: genai.TypeObject,
+				Properties: map[string]*genai.Schema{
+					"date":           str,
+					"time":           str,
+					"transaction_id": str,
+				},
+				Required: []string{"date", "time", "transaction_id"},
+			},
+		},
+		Required: []string{"items", "store_information", "totals", "transaction_information"},
+	}
 }
 
 func cleanJSON(raw string) string {
 	s := strings.TrimSpace(raw)
+	s = strings.TrimPrefix(s, "\uFEFF")
+
 	if strings.HasPrefix(s, "```json") {
 		s = strings.TrimPrefix(s, "```json")
 	} else if strings.HasPrefix(s, "```") {
 		s = strings.TrimPrefix(s, "```")
 	}
-	s = strings.TrimSuffix(strings.TrimSpace(s), "```")
+	s = strings.TrimSpace(s)
+	s = strings.TrimSuffix(s, "```")
+	s = strings.TrimSpace(s)
+
+	start := strings.Index(s, "{")
+	end := strings.LastIndex(s, "}")
+	if start >= 0 && end > start {
+		s = s[start : end+1]
+	}
 	return strings.TrimSpace(s)
+}
+
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
 }
