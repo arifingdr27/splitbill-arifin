@@ -1,56 +1,57 @@
 # Splitbill API Documentation
 
 ## Overview
-Splitbill API adalah layanan yang memungkinkan ekstraksi informasi dari gambar struk belanja menggunakan teknologi OCR (Optical Character Recognition) dan AI. API ini dapat mengidentifikasi item-item yang dibeli, informasi toko, total harga, pajak, dan detail transaksi lainnya.
 
-## Quick Start
+Splitbill API mengekstrak informasi dari gambar struk belanja menggunakan OCR + Google Gemini AI (item, toko, total, pajak, transaksi).
 
-### Prerequisites
-- Go 1.23 atau lebih baru
-- API Key untuk Google Gemini AI
-- Firebase Project untuk storage (opsional)
+## Prerequisites
 
-### Installation
-1. Clone repository ini
-2. Install dependencies:
-   ```bash
-   go mod tidy
-   ```
-3. Setup environment variables (buat file `.env`):
-   ```
-   GEMINI_API_KEY=your_gemini_api_key
-   BUCKET_STORAGE=VM # atau FIREBASE
-   ```
-4. Jalankan aplikasi:
-   ```bash
-   go run main.go
-   ```
+- Go 1.23+
+- `GEMINI_API_KEY`
+- Firebase credentials (hanya jika `BUCKET_STORAGE=FIREBASE`)
 
-## API Documentation
+## Installation
 
-### Base URL
+```bash
+cp .env.example .env
+go mod tidy
+go run ./cmd/api
+```
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `APP_PORT` | Listen port | `3000` |
+| `APP_ENV` | Environment name | `development` |
+| `CORS_ALLOW_ORIGINS` | CORS origins | `*` |
+| `GEMINI_API_KEY` | Google Gemini API key | required |
+| `GEMINI_MODEL` | Gemini model | `gemini-2.0-flash` |
+| `BUCKET_STORAGE` | `VM` or `FIREBASE` | `VM` |
+| `STORAGE_LOCAL_PATH` | Local upload path | `./storage/public` |
+| `FIREBASE_SERVICE_ACCOUNT_KEY_PATH` | Service account JSON | `./storage/firebase-adminsdk.json` |
+| `FIREBASE_STORAGE_BUCKET` | Firebase bucket name | required if FIREBASE |
+| `LOG_LEVEL` | Log level | `info` |
+| `LOG_DIR` | Log directory | `./storage/logs` |
+
+## Base URL
+
 ```
 http://localhost:3000
 ```
 
-### Swagger Documentation
-Dokumentasi interactive Swagger tersedia di:
-```
-http://localhost:3000/swagger/index.html
-```
+Swagger: http://localhost:3000/swagger/index.html
 
-### Endpoints
+## Endpoint
 
-#### POST /api/v2
-Extract splitbill information from receipt image
+### POST /api/v2
 
-**Request:**
-- Method: `POST`
-- Content-Type: `multipart/form-data`
-- Parameters:
-  - `image` (file, required): Receipt image file (jpg, jpeg, png)
+Extract splitbill information from receipt image.
 
-**Response Success (202):**
+**Request:** `multipart/form-data` field `image` (jpg, jpeg, png)
+
+**Success (200):**
+
 ```json
 {
   "items": [
@@ -63,20 +64,20 @@ Extract splitbill information from receipt image
   ],
   "store_information": {
     "address": "Jl. Sudirman No. 123, Jakarta",
-    "email": "info@restaurant.com", 
+    "email": "info@restaurant.com",
     "npwp": "12.345.678.9-012.345",
     "phone_number": "+62812345678",
     "store_name": "Restaurant ABC"
   },
   "totals": {
     "change": "5000.00",
-    "discount": "0.00", 
+    "discount": "0.00",
     "payment": "105000.00",
     "subtotal": "95000.00",
     "tax": {
       "amount": "5000.00",
       "service_charge": "0.00",
-      "dpp": "95000.00", 
+      "dpp": "95000.00",
       "name": "PPN",
       "total_tax": "5000.00"
     },
@@ -90,81 +91,39 @@ Extract splitbill information from receipt image
 }
 ```
 
-**Response Error (406):**
+**Error (400 / 422):**
+
 ```json
 {
   "data": "",
-  "status": "Error uploading image"
+  "status": "image file is required"
 }
 ```
 
-## Features
+## cURL
 
-- **OCR Processing**: Menggunakan Google Gemini AI untuk membaca teks dari gambar struk
-- **Smart Extraction**: Mengidentifikasi dan mengekstrak informasi terstruktur dari struk
-- **Flexible Storage**: Mendukung penyimpanan gambar ke VM lokal atau Firebase Storage
-- **Detailed Response**: Memberikan informasi lengkap termasuk item, toko, pajak, dan transaksi
-- **Error Handling**: Comprehensive error handling dan logging
-
-## Testing
-
-### Using cURL
 ```bash
 curl -X POST http://localhost:3000/api/v2 \
-  -H "Content-Type: multipart/form-data" \
   -F "image=@/path/to/receipt.jpg"
 ```
 
-### Using Swagger UI
-1. Buka http://localhost:3000/swagger/index.html
-2. Klik pada endpoint POST /
-3. Klik "Try it out"
-4. Upload file gambar struk
-5. Klik "Execute"
+## Docker
 
-## Supported Image Formats
-- JPEG (.jpg, .jpeg)
-- PNG (.png)
-- Ukuran file maksimal: sesuai konfigurasi server
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `GEMINI_API_KEY` | API key untuk Google Gemini AI | Required |
-| `BUCKET_STORAGE` | Storage type (VM/FIREBASE) | VM |
-| `FIREBASE_PROJECT_ID` | Firebase project ID (jika menggunakan Firebase) | - |
-
-## Error Codes
-
-| Status Code | Description |
-|-------------|-------------|
-| 202 | Success - Receipt processed successfully |
-| 406 | Not Acceptable - Failed to process receipt |
-
-## Development
-
-### Generate Swagger Documentation
-Setelah mengubah anotasi Swagger di kode:
 ```bash
-swag init
+cp .env.example .env
+docker compose up --build
 ```
 
-### Project Structure
+Nginx proxy: http://localhost:8031
+
+## Architecture
+
 ```
-.
-├── controllers/        # API controllers
-├── services/          # Business logic
-├── models/           # Data models untuk Swagger
-├── docs/             # Generated Swagger documentation  
-├── config/           # Configuration files
-├── helpers/          # Utility functions
-├── routes/           # Route definitions
-└── storage/          # File storage
+cmd/api → adapter/http → service → port (storage | gemini)
 ```
+
+Stateless: no database. Images stored to VM disk or Firebase Storage.
 
 ## License
-Apache 2.0
 
-## Support
-Untuk bantuan teknis, silakan hubungi support@swagger.io
+Apache 2.0

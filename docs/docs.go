@@ -25,7 +25,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/": {
+        "/api/v2": {
             "post": {
                 "description": "Upload a receipt image and extract detailed splitbill information including items, store details, totals, and transaction information using OCR and AI",
                 "consumes": [
@@ -48,16 +48,22 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "202": {
+                    "200": {
                         "description": "Successfully processed receipt",
                         "schema": {
-                            "$ref": "#/definitions/models.SplitbillResponse"
+                            "$ref": "#/definitions/domain.SplitbillResult"
                         }
                     },
-                    "406": {
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/domain.ErrorResponse"
+                        }
+                    },
+                    "422": {
                         "description": "Failed to process receipt",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/domain.ErrorResponse"
                         }
                     }
                 }
@@ -65,7 +71,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "models.ErrorResponse": {
+        "domain.ErrorResponse": {
             "type": "object",
             "properties": {
                 "data": {
@@ -77,7 +83,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Item": {
+        "domain.Item": {
             "type": "object",
             "properties": {
                 "name": {
@@ -98,27 +104,27 @@ const docTemplate = `{
                 }
             }
         },
-        "models.SplitbillResponse": {
+        "domain.SplitbillResult": {
             "type": "object",
             "properties": {
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Item"
+                        "$ref": "#/definitions/domain.Item"
                     }
                 },
                 "store_information": {
-                    "$ref": "#/definitions/models.StoreInformation"
+                    "$ref": "#/definitions/domain.StoreInformation"
                 },
                 "totals": {
-                    "$ref": "#/definitions/models.Totals"
+                    "$ref": "#/definitions/domain.Totals"
                 },
                 "transaction_information": {
-                    "$ref": "#/definitions/models.TransactionInfo"
+                    "$ref": "#/definitions/domain.TransactionInfo"
                 }
             }
         },
-        "models.StoreInformation": {
+        "domain.StoreInformation": {
             "type": "object",
             "properties": {
                 "address": {
@@ -143,7 +149,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Tax": {
+        "domain.Tax": {
             "type": "object",
             "properties": {
                 "amount": {
@@ -168,7 +174,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Totals": {
+        "domain.Totals": {
             "type": "object",
             "properties": {
                 "change": {
@@ -188,7 +194,7 @@ const docTemplate = `{
                     "example": "95000.00"
                 },
                 "tax": {
-                    "$ref": "#/definitions/models.Tax"
+                    "$ref": "#/definitions/domain.Tax"
                 },
                 "total": {
                     "type": "string",
@@ -196,7 +202,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.TransactionInfo": {
+        "domain.TransactionInfo": {
             "type": "object",
             "properties": {
                 "date": {

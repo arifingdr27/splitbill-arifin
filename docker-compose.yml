@@ -1,28 +1,36 @@
-# splitbill-app/docker-compose.yml
-version: '3.8'
-
 services:
-  splitbill_golang_app:
-    container_name: splitbill_be_golang_app # Nama kustom untuk container backend
+  splitbill_api:
+    container_name: splitbill_api
     build:
-      context: . # Membangun image dari direktori ./app
-      dockerfile: Dockerfile.golang # Menggunakan Dockerfile kustom untuk Golang
-    restart: always # Selalu restart jika crash
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_PORT: "3000"
+      STORAGE_LOCAL_PATH: /app/storage/public
+      LOG_DIR: /app/storage/logs
+    volumes:
+      - ./storage/public:/app/storage/public
+      - ./storage/logs:/app/storage/logs
+      # Uncomment when BUCKET_STORAGE=FIREBASE:
+      # - ./storage/firebase-adminsdk.json:/app/storage/firebase-adminsdk.json:ro
     expose:
-      - "3000" # Mengekspos port 3000 di dalam jaringan Docker
+      - "3000"
     networks:
       - app_network
 
   splitbill_nginx:
-    container_name: splitbill_be_golang_app # Nama kustom untuk container nginx
-    image: nginx:alpine # Menggunakan image Nginx resmi
+    container_name: splitbill_nginx
+    image: nginx:alpine
     ports:
-      - "8031:8031" # Memetakan port 8014 dari host ke port 8014 di kontainer Nginx
+      - "8031:8031"
     volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro # Memasang konfigurasi Nginx
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - splitbill_golang_app # Memastikan aplikasi Golang siap sebelum Nginx berjalan
-    restart: always
+      - splitbill_api
+    restart: unless-stopped
     networks:
       - app_network
 

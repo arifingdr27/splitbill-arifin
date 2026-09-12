@@ -1,6 +1,6 @@
 basePath: /
 definitions:
-  models.ErrorResponse:
+  domain.ErrorResponse:
     properties:
       data:
         type: string
@@ -8,7 +8,7 @@ definitions:
         example: Error uploading image
         type: string
     type: object
-  models.Item:
+  domain.Item:
     properties:
       name:
         example: Nasi Goreng
@@ -23,20 +23,20 @@ definitions:
         example: "50000.00"
         type: string
     type: object
-  models.SplitbillResponse:
+  domain.SplitbillResult:
     properties:
       items:
         items:
-          $ref: '#/definitions/models.Item'
+          $ref: '#/definitions/domain.Item'
         type: array
       store_information:
-        $ref: '#/definitions/models.StoreInformation'
+        $ref: '#/definitions/domain.StoreInformation'
       totals:
-        $ref: '#/definitions/models.Totals'
+        $ref: '#/definitions/domain.Totals'
       transaction_information:
-        $ref: '#/definitions/models.TransactionInfo'
+        $ref: '#/definitions/domain.TransactionInfo'
     type: object
-  models.StoreInformation:
+  domain.StoreInformation:
     properties:
       address:
         example: Jl. Sudirman No. 123, Jakarta
@@ -54,7 +54,7 @@ definitions:
         example: Restaurant ABC
         type: string
     type: object
-  models.Tax:
+  domain.Tax:
     properties:
       amount:
         example: "5000.00"
@@ -72,7 +72,7 @@ definitions:
         example: "5000.00"
         type: string
     type: object
-  models.Totals:
+  domain.Totals:
     properties:
       change:
         example: "5000.00"
@@ -87,12 +87,12 @@ definitions:
         example: "95000.00"
         type: string
       tax:
-        $ref: '#/definitions/models.Tax'
+        $ref: '#/definitions/domain.Tax'
       total:
         example: "100000.00"
         type: string
     type: object
-  models.TransactionInfo:
+  domain.TransactionInfo:
     properties:
       date:
         example: 02/08/2025
@@ -106,26 +106,16 @@ definitions:
     type: object
 host: localhost:3000
 info:
-  contact:
-    email: support@swagger.io
-    name: API Support
-    url: http://www.swagger.io/support
-  description: API untuk mengekstrak informasi splitbill dari gambar struk menggunakan
-    OCR dan AI
-  license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
-  termsOfService: http://swagger.io/terms/
+  description: API untuk mengekstrak informasi splitbill dari gambar struk menggunakan OCR dan AI
   title: Splitbill API
   version: "1.0"
 paths:
-  /:
+  /api/v2:
     post:
       consumes:
       - multipart/form-data
       description: Upload a receipt image and extract detailed splitbill information
-        including items, store details, totals, and transaction information using
-        OCR and AI
+        including items, store details, totals, and transaction information using OCR and AI
       parameters:
       - description: Receipt image file (jpg, jpeg, png)
         in: formData
@@ -135,14 +125,18 @@ paths:
       produces:
       - application/json
       responses:
-        "202":
+        "200":
           description: Successfully processed receipt
           schema:
-            $ref: '#/definitions/models.SplitbillResponse'
-        "406":
+            $ref: '#/definitions/domain.SplitbillResult'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "422":
           description: Failed to process receipt
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/domain.ErrorResponse'
       summary: Extract splitbill information from receipt image
       tags:
       - Splitbill

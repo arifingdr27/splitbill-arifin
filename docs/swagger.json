@@ -3,22 +3,12 @@
     "info": {
         "description": "API untuk mengekstrak informasi splitbill dari gambar struk menggunakan OCR dan AI",
         "title": "Splitbill API",
-        "termsOfService": "http://swagger.io/terms/",
-        "contact": {
-            "name": "API Support",
-            "url": "http://www.swagger.io/support",
-            "email": "support@swagger.io"
-        },
-        "license": {
-            "name": "Apache 2.0",
-            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
-        },
         "version": "1.0"
     },
     "host": "localhost:3000",
     "basePath": "/",
     "paths": {
-        "/": {
+        "/api/v2": {
             "post": {
                 "description": "Upload a receipt image and extract detailed splitbill information including items, store details, totals, and transaction information using OCR and AI",
                 "consumes": [
@@ -41,16 +31,22 @@
                     }
                 ],
                 "responses": {
-                    "202": {
+                    "200": {
                         "description": "Successfully processed receipt",
                         "schema": {
-                            "$ref": "#/definitions/models.SplitbillResponse"
+                            "$ref": "#/definitions/domain.SplitbillResult"
                         }
                     },
-                    "406": {
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/domain.ErrorResponse"
+                        }
+                    },
+                    "422": {
                         "description": "Failed to process receipt",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/domain.ErrorResponse"
                         }
                     }
                 }
@@ -58,7 +54,7 @@
         }
     },
     "definitions": {
-        "models.ErrorResponse": {
+        "domain.ErrorResponse": {
             "type": "object",
             "properties": {
                 "data": {
@@ -70,7 +66,7 @@
                 }
             }
         },
-        "models.Item": {
+        "domain.Item": {
             "type": "object",
             "properties": {
                 "name": {
@@ -91,27 +87,27 @@
                 }
             }
         },
-        "models.SplitbillResponse": {
+        "domain.SplitbillResult": {
             "type": "object",
             "properties": {
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Item"
+                        "$ref": "#/definitions/domain.Item"
                     }
                 },
                 "store_information": {
-                    "$ref": "#/definitions/models.StoreInformation"
+                    "$ref": "#/definitions/domain.StoreInformation"
                 },
                 "totals": {
-                    "$ref": "#/definitions/models.Totals"
+                    "$ref": "#/definitions/domain.Totals"
                 },
                 "transaction_information": {
-                    "$ref": "#/definitions/models.TransactionInfo"
+                    "$ref": "#/definitions/domain.TransactionInfo"
                 }
             }
         },
-        "models.StoreInformation": {
+        "domain.StoreInformation": {
             "type": "object",
             "properties": {
                 "address": {
@@ -136,7 +132,7 @@
                 }
             }
         },
-        "models.Tax": {
+        "domain.Tax": {
             "type": "object",
             "properties": {
                 "amount": {
@@ -161,7 +157,7 @@
                 }
             }
         },
-        "models.Totals": {
+        "domain.Totals": {
             "type": "object",
             "properties": {
                 "change": {
@@ -181,7 +177,7 @@
                     "example": "95000.00"
                 },
                 "tax": {
-                    "$ref": "#/definitions/models.Tax"
+                    "$ref": "#/definitions/domain.Tax"
                 },
                 "total": {
                     "type": "string",
@@ -189,7 +185,7 @@
                 }
             }
         },
-        "models.TransactionInfo": {
+        "domain.TransactionInfo": {
             "type": "object",
             "properties": {
                 "date": {
