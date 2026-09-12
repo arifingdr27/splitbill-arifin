@@ -12,6 +12,6 @@ docker run --rm \
 	-v splitbill_gomod:/go/pkg/mod \
 	-v splitbill_gobuild:/root/.cache/go-build \
 	golang:1.23-alpine \
-	sh -c 'apk add --no-cache git ca-certificates >/dev/null && go build -ldflags="-s -w" -o bin/splitbill-api ./cmd/api'
+	sh -c 'apk add --no-cache git ca-certificates >/dev/null && go build -buildvcs=false -ldflags="-s -w" -o bin/splitbill-api ./cmd/api'
 
 docker compose up -d --build --remove-orphans

@@ -17,7 +17,7 @@ build: dirs
 		-v splitbill_gomod:/go/pkg/mod \
 		-v splitbill_gobuild:/root/.cache/go-build \
 		$(GO_IMAGE) \
-		sh -c 'apk add --no-cache git ca-certificates >/dev/null && go build -ldflags="-s -w" -o $(APP_BIN) $(CMD_PKG)'
+		sh -c 'apk add --no-cache git ca-certificates >/dev/null && go build -buildvcs=false -ldflags="-s -w" -o $(APP_BIN) $(CMD_PKG)'
 
 up: build
 	docker compose up -d --build --remove-orphans
