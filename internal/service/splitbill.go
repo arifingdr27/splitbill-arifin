@@ -7,19 +7,28 @@ import (
 	"strings"
 	"time"
 
+	"github.com/arifin2018/splitbill-arifin.git/internal/config"
 	"github.com/arifin2018/splitbill-arifin.git/internal/domain"
 	"github.com/arifin2018/splitbill-arifin.git/internal/port"
 	"github.com/sirupsen/logrus"
 )
 
+const extractSlotWait = 2 * time.Second
+
 type SplitbillService struct {
-	storage   port.StorageUploader
-	extractor port.ReceiptExtractor
-	log       *logrus.Logger
+	storage    port.StorageUploader
+	extractor  port.ReceiptExtractor
+	log        *logrus.Logger
+	extractSem chan struct{}
 }
 
-func NewSplitbillService(storage port.StorageUploader, extractor port.ReceiptExtractor, log *logrus.Logger) *SplitbillService {
-	return &SplitbillService{storage: storage, extractor: extractor, log: log}
+func NewSplitbillService(storage port.StorageUploader, extractor port.ReceiptExtractor, log *logrus.Logger, cfg *config.Config) *SplitbillService {
+	return &SplitbillService{
+		storage:    storage,
+		extractor:  extractor,
+		log:        log,
+		extractSem: make(chan struct{}, cfg.ExtractMaxConcurrent),
+	}
 }
 
 func (s *SplitbillService) ExtractReceipt(ctx context.Context, input domain.ImageInput) (*domain.SplitbillResult, error) {
@@ -33,15 +42,40 @@ func (s *SplitbillService) ExtractReceipt(ctx context.Context, input domain.Imag
 	objectName := buildObjectName(input.Filename)
 	url, err := s.storage.Upload(ctx, objectName, input.Data, input.ContentType)
 	if err != nil {
-		return nil, fmt.Errorf("upload image: %w", err)
+		s.log.Errorf("upload image failed: %v", err)
+		return nil, domain.ErrStorageUnavailable
 	}
 	s.log.Infof("uploaded image url=%s", url)
+
+	if err := s.acquireExtractSlot(ctx); err != nil {
+		return nil, err
+	}
+	defer s.releaseExtractSlot()
 
 	result, err := s.extractor.Extract(ctx, input.Data, input.ContentType)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
+}
+
+func (s *SplitbillService) acquireExtractSlot(ctx context.Context) error {
+	timer := time.NewTimer(extractSlotWait)
+	defer timer.Stop()
+
+	select {
+	case s.extractSem <- struct{}{}:
+		return nil
+	case <-ctx.Done():
+		return domain.ErrServiceBusy
+	case <-timer.C:
+		s.log.WithField("reason", "extract_concurrency").Warn("extract rejected")
+		return domain.ErrServiceBusy
+	}
+}
+
+func (s *SplitbillService) releaseExtractSlot() {
+	<-s.extractSem
 }
 
 func buildObjectName(filename string) string {

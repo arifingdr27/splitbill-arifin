@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/arifin2018/splitbill-arifin.git/internal/domain"
 	"github.com/sirupsen/logrus"
@@ -27,12 +28,13 @@ Aturan field:
 - discount: angka desimal; jika tidak ada, "0"`
 
 type Extractor struct {
-	client *genai.Client
-	model  string
-	log    *logrus.Logger
+	client  *genai.Client
+	model   string
+	timeout time.Duration
+	log     *logrus.Logger
 }
 
-func NewExtractor(ctx context.Context, apiKey, model string, log *logrus.Logger) (*Extractor, error) {
+func NewExtractor(ctx context.Context, apiKey, model string, timeout time.Duration, log *logrus.Logger) (*Extractor, error) {
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{
 		APIKey:  apiKey,
 		Backend: genai.BackendGeminiAPI,
@@ -40,7 +42,10 @@ func NewExtractor(ctx context.Context, apiKey, model string, log *logrus.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("create gemini client: %w", err)
 	}
-	return &Extractor{client: client, model: model, log: log}, nil
+	if timeout < time.Second {
+		timeout = 25 * time.Second
+	}
+	return &Extractor{client: client, model: model, timeout: timeout, log: log}, nil
 }
 
 func (e *Extractor) Extract(ctx context.Context, image []byte, mimeType string) (*domain.SplitbillResult, error) {
@@ -63,9 +68,12 @@ func (e *Extractor) Extract(ctx context.Context, image []byte, mimeType string) 
 
 	var lastErr error
 	for attempt := 1; attempt <= maxExtractAttempts; attempt++ {
-		result, err := e.client.Models.GenerateContent(ctx, e.model, contents, cfg)
+		attemptCtx, cancel := context.WithTimeout(ctx, e.timeout)
+		result, err := e.client.Models.GenerateContent(attemptCtx, e.model, contents, cfg)
+		cancel()
 		if err != nil {
-			return nil, fmt.Errorf("%w: %v", domain.ErrExtractFailed, err)
+			e.log.Errorf("gemini attempt=%d generate failed: %v", attempt, err)
+			return nil, domain.ErrExtractFailed
 		}
 
 		raw := result.Text()
@@ -87,7 +95,8 @@ func (e *Extractor) Extract(ctx context.Context, image []byte, mimeType string) 
 		return &out, nil
 	}
 
-	return nil, fmt.Errorf("%w: unmarshal: %v", domain.ErrExtractFailed, lastErr)
+	e.log.Errorf("gemini extract failed after retries: %v", lastErr)
+	return nil, domain.ErrExtractFailed
 }
 
 func receiptSchema() *genai.Schema {

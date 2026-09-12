@@ -39,7 +39,14 @@ func main() {
 	}
 
 	app := fiber.New(fiber.Config{
-		AppName: "splitbill-api",
+		AppName:       "splitbill-api",
+		BodyLimit:     cfg.HTTPBodyLimitBytes,
+		ReadTimeout:   cfg.HTTPReadTimeout,
+		WriteTimeout:  cfg.HTTPWriteTimeout,
+		IdleTimeout:   cfg.HTTPIdleTimeout,
+		Concurrency:   cfg.HTTPConcurrency,
+		ProxyHeader:   fiber.HeaderXForwardedFor,
+		ErrorHandler:  httpadapter.FiberErrorHandler,
 	})
 	httpadapter.RegisterMiddleware(app, cfg.CORSOrigins, log)
 	router.Mount(app)

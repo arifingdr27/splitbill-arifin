@@ -16,7 +16,7 @@ func provideLogger(cfg *config.Config) (*logrus.Logger, error) {
 }
 
 func provideExtractor(ctx context.Context, cfg *config.Config, log *logrus.Logger) (port.ReceiptExtractor, error) {
-	return gemini.NewExtractor(ctx, cfg.GeminiAPIKey, cfg.GeminiModel, log)
+	return gemini.NewExtractor(ctx, cfg.GeminiAPIKey, cfg.GeminiModel, cfg.GeminiTimeout, log)
 }
 
 func provideStorage(ctx context.Context, cfg *config.Config, log *logrus.Logger) (port.StorageUploader, error) {

@@ -27,7 +27,7 @@ func InitializeRouter(ctx context.Context, cfg *config.Config) (*httpadapter.Rou
 	if err != nil {
 		return nil, err
 	}
-	svc := service.NewSplitbillService(uploader, extractor, log)
-	handler := httpadapter.NewSplitbillHandler(svc, log)
-	return httpadapter.NewRouter(handler), nil
+	svc := service.NewSplitbillService(uploader, extractor, log, cfg)
+	handler := httpadapter.NewSplitbillHandler(svc, log, cfg)
+	return httpadapter.NewRouter(handler, cfg, log), nil
 }
