@@ -13,7 +13,6 @@ import (
 	"github.com/arifin2018/splitbill-arifin.git/internal/adapter/postgres"
 	"github.com/arifin2018/splitbill-arifin.git/internal/adapter/storage"
 	"github.com/arifin2018/splitbill-arifin.git/internal/config"
-	"github.com/arifin2018/splitbill-arifin.git/internal/migrate"
 	"github.com/arifin2018/splitbill-arifin.git/internal/port"
 	"github.com/arifin2018/splitbill-arifin.git/internal/service"
 	applogger "github.com/arifin2018/splitbill-arifin.git/pkg/logger"
@@ -26,15 +25,7 @@ func provideLogger(cfg *config.Config) (*logrus.Logger, error) {
 }
 
 func providePool(ctx context.Context, cfg *config.Config, log *logrus.Logger) (*pgxpool.Pool, error) {
-	pool, err := postgres.NewPool(ctx, cfg.DatabaseURL, log)
-	if err != nil {
-		return nil, err
-	}
-	if err := migrate.New(pool, log).Up(ctx); err != nil {
-		pool.Close()
-		return nil, err
-	}
-	return pool, nil
+	return postgres.NewPool(ctx, cfg.DatabaseURL, log)
 }
 
 func provideUserRepo(pool *pgxpool.Pool) port.UserRepository {
