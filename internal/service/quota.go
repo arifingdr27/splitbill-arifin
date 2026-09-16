@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/arifin2018/splitbill-arifin.git/internal/domain"
@@ -13,12 +14,24 @@ import (
 
 var wib = time.FixedZone("WIB", 7*3600)
 
+// Personal/testing accounts that skip OCR quota enforcement.
+var quotaExemptEmails = map[string]struct{}{
+	"arifingdr@gmail.com": {},
+}
+
+const quotaExemptRemaining = 999999
+
 type QuotaService struct {
 	pool      *pgxpool.Pool
 	users     port.UserRepository
 	usage     port.UsageRepository
 	freeLimit int
 	log       *logrus.Logger
+}
+
+func isQuotaExempt(email string) bool {
+	_, ok := quotaExemptEmails[strings.ToLower(strings.TrimSpace(email))]
+	return ok
 }
 
 func NewQuotaService(pool *pgxpool.Pool, users port.UserRepository, usage port.UsageRepository, freeLimit int, log *logrus.Logger) *QuotaService {
@@ -51,7 +64,7 @@ func (s *QuotaService) Snapshot(ctx context.Context, userID uuid.UUID) (*domain.
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
-	return buildSnapshot(period, usage, user.CreditBalance), nil
+	return applyExemptSnapshot(buildSnapshot(period, usage, user.CreditBalance), user.Email), nil
 }
 
 func (s *QuotaService) AssertAvailable(ctx context.Context, userID uuid.UUID) (*domain.QuotaSnapshot, error) {
@@ -81,6 +94,13 @@ func (s *QuotaService) DebitOnSuccess(ctx context.Context, userID uuid.UUID) (*d
 	usage, err := s.usage.GetOrCreateForUpdate(ctx, tx, userID, period, s.freeLimit)
 	if err != nil {
 		return nil, err
+	}
+
+	if isQuotaExempt(user.Email) {
+		if err := tx.Commit(ctx); err != nil {
+			return nil, err
+		}
+		return applyExemptSnapshot(buildSnapshot(period, usage, user.CreditBalance), user.Email), nil
 	}
 
 	freeRemaining := usage.FreeLimit - usage.FreeUsed
@@ -137,4 +157,11 @@ func buildSnapshot(period string, usage *domain.UsageMonthly, credit int) *domai
 		CreditBalance:  credit,
 		TotalRemaining: credit + freeRemaining,
 	}
+}
+
+func applyExemptSnapshot(snap *domain.QuotaSnapshot, email string) *domain.QuotaSnapshot {
+	if isQuotaExempt(email) {
+		snap.TotalRemaining = quotaExemptRemaining
+	}
+	return snap
 }

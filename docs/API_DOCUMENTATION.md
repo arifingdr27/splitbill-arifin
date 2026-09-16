@@ -87,6 +87,12 @@ Extract splitbill information from receipt image.
     "date": "02/08/2025",
     "time": "19:30",
     "transaction_id": "TXN123456789"
+  },
+  "currency": {
+    "code": "IDR",
+    "symbol": "Rp",
+    "name": "Indonesian Rupiah",
+    "confidence": "high"
   }
 }
 ```

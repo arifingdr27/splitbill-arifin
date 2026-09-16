@@ -2,7 +2,7 @@ APP_BIN := bin/splitbill-api
 CMD_PKG := ./cmd/api
 GO_IMAGE := golang:1.23-alpine
 
-.PHONY: dirs build up down clean
+.PHONY: dirs build up down restart clean
 
 dirs:
 	mkdir -p bin storage/public/images storage/logs/general_log
@@ -24,6 +24,8 @@ up: build
 
 down:
 	docker compose down
+
+restart: down up
 
 clean:
 	rm -f $(APP_BIN)

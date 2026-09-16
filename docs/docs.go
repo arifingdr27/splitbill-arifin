@@ -104,9 +104,33 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.Currency": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "IDR"
+                },
+                "confidence": {
+                    "type": "string",
+                    "example": "high"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Indonesian Rupiah"
+                },
+                "symbol": {
+                    "type": "string",
+                    "example": "Rp"
+                }
+            }
+        },
         "domain.SplitbillResult": {
             "type": "object",
             "properties": {
+                "currency": {
+                    "$ref": "#/definitions/domain.Currency"
+                },
                 "items": {
                     "type": "array",
                     "items": {

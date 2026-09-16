@@ -6,6 +6,15 @@ type SplitbillResult struct {
 	StoreInformation StoreInformation `json:"store_information"`
 	Totals           Totals           `json:"totals"`
 	TransactionInfo  TransactionInfo  `json:"transaction_information"`
+	Currency         Currency         `json:"currency"`
+}
+
+// Currency is the detected monetary currency for frontend formatting.
+type Currency struct {
+	Code       string `json:"code" example:"IDR"`
+	Symbol     string `json:"symbol" example:"Rp"`
+	Name       string `json:"name" example:"Indonesian Rupiah"`
+	Confidence string `json:"confidence" example:"high"`
 }
 
 type Item struct {

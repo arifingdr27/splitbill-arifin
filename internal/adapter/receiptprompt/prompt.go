@@ -8,11 +8,17 @@ Aturan field:
 - items: daftar barang dari struk
 - price: harga per unit; jika tidak ada kolom terpisah, hitung total/quantity; jika tidak bisa, "0"
 - quantity, total: sesuai struk
-- nilai numerik: desimal tanpa pemisah ribuan (contoh "220000.00")
+- nilai numerik: desimal tanpa pemisah ribuan (contoh "220000.00"); JANGAN sisipkan simbol atau kode mata uang ke field numerik
 - field tidak ditemukan: string kosong ""
 - date: DD/MM/YYYY
 - time: HH:MM
 - discount: angka desimal; jika tidak ada, "0"
+- currency: deteksi mata uang dari simbol (Rp, $, €, ¥), kode (IDR, USD), alamat/lokasi toko, atau istilah pajak (PPN/Pajak)
+  - code: ISO 4217 (contoh "IDR"); jika tidak yakin ""
+  - symbol: contoh "Rp", "$"; jika tidak ada ""
+  - name: nama lengkap (contoh "Indonesian Rupiah"); jika tidak yakin ""
+  - confidence: "high" | "medium" | "low"
+  - JANGAN ubah format atau isi field lain; currency hanya di object currency
 
 Schema JSON wajib:
 {
@@ -23,5 +29,6 @@ Schema JSON wajib:
     "tax":{"amount":"","service_charge":"","dpp":"","name":"","total_tax":""},
     "total":""
   },
-  "transaction_information": {"date":"","time":"","transaction_id":""}
+  "transaction_information": {"date":"","time":"","transaction_id":""},
+  "currency": {"code":"","symbol":"","name":"","confidence":""}
 }`

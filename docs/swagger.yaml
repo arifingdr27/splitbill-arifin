@@ -23,8 +23,25 @@ definitions:
         example: "50000.00"
         type: string
     type: object
+  domain.Currency:
+    properties:
+      code:
+        example: IDR
+        type: string
+      confidence:
+        example: high
+        type: string
+      name:
+        example: Indonesian Rupiah
+        type: string
+      symbol:
+        example: Rp
+        type: string
+    type: object
   domain.SplitbillResult:
     properties:
+      currency:
+        $ref: '#/definitions/domain.Currency'
       items:
         items:
           $ref: '#/definitions/domain.Item'
