@@ -1,6 +1,7 @@
 package httpadapter
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/arifin2018/splitbill-arifin.git/internal/domain"
@@ -33,6 +34,7 @@ func rateLimitMiddleware(rpm int, log *logrus.Logger) fiber.Handler {
 				"path":   c.Path(),
 				"reason": "rate_limit",
 			}).Warn("request rejected")
+			c.Set(fiber.HeaderRetryAfter, strconv.Itoa(60))
 			return writeError(c, domain.ErrTooManyRequests)
 		},
 	})

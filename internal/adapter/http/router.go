@@ -41,11 +41,16 @@ func (r *Router) Mount(app *fiber.App) {
 	}
 
 	authMW := AuthMiddleware(r.tokens, r.log)
+	globalRL := rateLimitMiddleware(r.cfg.GlobalRateLimitRPM, r.log)
+	authRL := rateLimitMiddleware(r.cfg.AuthRateLimitRPM, r.log)
+	extractRL := rateLimitMiddleware(r.cfg.RateLimitRPM, r.log)
 
-	v1 := app.Group("/api/v1")
-	v1.Post("/auth/google", r.authHandler.GoogleLogin)
+	api := app.Group("/api", globalRL)
+
+	v1 := api.Group("/v1")
+	v1.Post("/auth/google", authRL, r.authHandler.GoogleLogin)
 	v1.Get("/me/quota", authMW, r.quotaHandler.MeQuota)
 
-	v2 := app.Group("/api/v2", rateLimitMiddleware(r.cfg.RateLimitRPM, r.log), authMW)
+	v2 := api.Group("/v2", extractRL, authMW)
 	v2.Post("", r.handler.Extract)
 }

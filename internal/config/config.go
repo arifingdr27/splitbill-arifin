@@ -23,6 +23,8 @@ const (
 	DefaultIdleTimeoutSec       = 60
 	DefaultHTTPConcurrency      = 128
 	DefaultRateLimitRPM         = 5
+	DefaultAuthRateLimitRPM     = 10
+	DefaultGlobalRateLimitRPM   = 60
 	DefaultExtractMaxConcurrent = 5
 	DefaultGeminiTimeoutSec     = 25
 	// Groq decommissioned llama-3.2-11b-vision-preview; Scout is the official replacement.
@@ -53,6 +55,9 @@ type Config struct {
 	HTTPIdleTimeout      time.Duration
 	HTTPConcurrency      int
 	RateLimitRPM         int
+	AuthRateLimitRPM     int
+	GlobalRateLimitRPM   int
+	TrustedProxies       []string
 	ExtractMaxConcurrent int
 	GeminiTimeout        time.Duration
 	GroqAPIKey           string
@@ -104,6 +109,9 @@ func Load(envFiles ...string) (*Config, error) {
 		HTTPIdleTimeout:      time.Duration(idleSec) * time.Second,
 		HTTPConcurrency:      getEnvInt("HTTP_CONCURRENCY", DefaultHTTPConcurrency),
 		RateLimitRPM:         getEnvInt("RATE_LIMIT_RPM", DefaultRateLimitRPM),
+		AuthRateLimitRPM:     getEnvInt("AUTH_RATE_LIMIT_RPM", DefaultAuthRateLimitRPM),
+		GlobalRateLimitRPM:   getEnvInt("GLOBAL_RATE_LIMIT_RPM", DefaultGlobalRateLimitRPM),
+		TrustedProxies:       parseCSV(getEnv("TRUSTED_PROXIES", "")),
 		ExtractMaxConcurrent: getEnvInt("EXTRACT_MAX_CONCURRENT", DefaultExtractMaxConcurrent),
 		GeminiTimeout:        time.Duration(geminiSec) * time.Second,
 		GroqAPIKey:           os.Getenv("GROQ_API_KEY"),
@@ -187,6 +195,12 @@ func (c *Config) validate() error {
 	if c.RateLimitRPM < 1 {
 		return fmt.Errorf("RATE_LIMIT_RPM must be > 0")
 	}
+	if c.AuthRateLimitRPM < 1 {
+		return fmt.Errorf("AUTH_RATE_LIMIT_RPM must be > 0")
+	}
+	if c.GlobalRateLimitRPM < 1 {
+		return fmt.Errorf("GLOBAL_RATE_LIMIT_RPM must be > 0")
+	}
 	if c.ExtractMaxConcurrent < 1 {
 		return fmt.Errorf("EXTRACT_MAX_CONCURRENT must be > 0")
 	}
@@ -243,6 +257,22 @@ func parseExtractProviders(raw string) ([]string, error) {
 		return nil, fmt.Errorf("EXTRACT_PROVIDER must list at least one provider")
 	}
 	return out, nil
+}
+
+func parseCSV(raw string) []string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 func getEnv(key, fallback string) string {

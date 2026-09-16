@@ -17,6 +17,8 @@ services:
       # DATABASE_URL must point to shared_postgres (set in .env)
       HTTP_BODY_LIMIT_BYTES: "5242880"
       RATE_LIMIT_RPM: "5"
+      AUTH_RATE_LIMIT_RPM: "10"
+      GLOBAL_RATE_LIMIT_RPM: "60"
       EXTRACT_MAX_CONCURRENT: "5"
       GEMINI_TIMEOUT_SEC: "25"
     volumes:
