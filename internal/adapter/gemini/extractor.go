@@ -53,35 +53,44 @@ func (e *Extractor) Extract(ctx context.Context, image []byte, mimeType string) 
 		genai.NewContentFromParts(parts, genai.RoleUser),
 	}
 
+	temp := float32(0.1)
+	thinkingBudget := int32(0)
 	cfg := &genai.GenerateContentConfig{
 		ResponseMIMEType: "application/json",
 		ResponseSchema:   receiptSchema(),
+		Temperature:      &temp,
+		MaxOutputTokens:  4096,
+		ThinkingConfig: &genai.ThinkingConfig{
+			ThinkingBudget: &thinkingBudget,
+		},
 	}
 
 	var lastErr error
 	for attempt := 1; attempt <= maxExtractAttempts; attempt++ {
+		started := time.Now()
 		attemptCtx, cancel := context.WithTimeout(ctx, e.timeout)
 		result, err := e.client.Models.GenerateContent(attemptCtx, e.model, contents, cfg)
 		cancel()
+		elapsed := time.Since(started)
 		if err != nil {
-			e.log.Errorf("gemini attempt=%d generate failed: %v", attempt, err)
+			e.log.Errorf("gemini attempt=%d generate failed duration=%s: %v", attempt, elapsed, err)
 			return nil, domain.ErrExtractFailed
 		}
 
 		raw := result.Text()
 		cleaned := receiptprompt.CleanJSON(raw)
-		e.log.Debugf("gemini attempt=%d raw_len=%d cleaned_len=%d", attempt, len(raw), len(cleaned))
+		e.log.Infof("gemini attempt=%d ok duration=%s raw_len=%d cleaned_len=%d", attempt, elapsed, len(raw), len(cleaned))
 
 		if cleaned == "" {
 			lastErr = fmt.Errorf("empty response")
-			e.log.Warnf("gemini attempt=%d empty cleaned response", attempt)
+			e.log.Warnf("gemini attempt=%d empty cleaned response duration=%s", attempt, elapsed)
 			continue
 		}
 
 		var out domain.SplitbillResult
 		if err := json.Unmarshal([]byte(cleaned), &out); err != nil {
 			lastErr = err
-			e.log.Errorf("gemini attempt=%d unmarshal failed cleaned=%q err=%v", attempt, receiptprompt.Truncate(cleaned, 500), err)
+			e.log.Errorf("gemini attempt=%d unmarshal failed duration=%s cleaned=%q err=%v", attempt, elapsed, receiptprompt.Truncate(cleaned, 500), err)
 			continue
 		}
 		return &out, nil

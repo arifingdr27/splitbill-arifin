@@ -20,7 +20,7 @@ services:
       AUTH_RATE_LIMIT_RPM: "10"
       GLOBAL_RATE_LIMIT_RPM: "60"
       EXTRACT_MAX_CONCURRENT: "5"
-      GEMINI_TIMEOUT_SEC: "25"
+      GEMINI_TIMEOUT_SEC: "15"
     volumes:
       - ./storage/public:/app/storage/public
       - ./storage/logs:/app/storage/logs
