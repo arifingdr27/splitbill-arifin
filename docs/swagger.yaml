@@ -38,6 +38,18 @@ definitions:
         example: Rp
         type: string
     type: object
+  domain.Language:
+    properties:
+      code:
+        example: id
+        type: string
+      confidence:
+        example: high
+        type: string
+      name:
+        example: Indonesian
+        type: string
+    type: object
   domain.SplitbillResult:
     properties:
       currency:
@@ -46,6 +58,8 @@ definitions:
         items:
           $ref: '#/definitions/domain.Item'
         type: array
+      language:
+        $ref: '#/definitions/domain.Language'
       store_information:
         $ref: '#/definitions/domain.StoreInformation'
       totals:

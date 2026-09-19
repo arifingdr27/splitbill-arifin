@@ -124,6 +124,15 @@ func receiptSchema() *genai.Schema {
 		},
 		Required: []string{"code", "symbol", "name", "confidence"},
 	}
+	language := &genai.Schema{
+		Type: genai.TypeObject,
+		Properties: map[string]*genai.Schema{
+			"code":       str,
+			"name":       str,
+			"confidence": str,
+		},
+		Required: []string{"code", "name", "confidence"},
+	}
 	return &genai.Schema{
 		Type: genai.TypeObject,
 		Properties: map[string]*genai.Schema{
@@ -164,7 +173,8 @@ func receiptSchema() *genai.Schema {
 				Required: []string{"date", "time", "transaction_id"},
 			},
 			"currency": currency,
+			"language": language,
 		},
-		Required: []string{"items", "store_information", "totals", "transaction_information", "currency"},
+		Required: []string{"items", "store_information", "totals", "transaction_information", "currency", "language"},
 	}
 }

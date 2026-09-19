@@ -125,6 +125,23 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.Language": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "id"
+                },
+                "confidence": {
+                    "type": "string",
+                    "example": "high"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Indonesian"
+                }
+            }
+        },
         "domain.SplitbillResult": {
             "type": "object",
             "properties": {
@@ -136,6 +153,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/domain.Item"
                     }
+                },
+                "language": {
+                    "$ref": "#/definitions/domain.Language"
                 },
                 "store_information": {
                     "$ref": "#/definitions/domain.StoreInformation"

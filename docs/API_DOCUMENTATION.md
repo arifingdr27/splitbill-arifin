@@ -93,6 +93,11 @@ Extract splitbill information from receipt image.
     "symbol": "Rp",
     "name": "Indonesian Rupiah",
     "confidence": "high"
+  },
+  "language": {
+    "code": "id",
+    "name": "Indonesian",
+    "confidence": "high"
   }
 }
 ```

@@ -19,6 +19,12 @@ Aturan field:
   - name: nama lengkap (contoh "Indonesian Rupiah"); jika tidak yakin ""
   - confidence: "high" | "medium" | "low"
   - JANGAN ubah format atau isi field lain; currency hanya di object currency
+- language: deteksi bahasa utama teks pada struk (label item, header, footer, pajak, total)
+  - code: ISO 639-1 (contoh "id", "en", "ja"); jika tidak yakin ""
+  - name: nama bahasa dalam English (contoh "Indonesian", "English", "Japanese"); jika tidak yakin ""
+  - confidence: "high" | "medium" | "low"
+  - jika struk bilingual, pilih bahasa yang paling dominan pada label/teks non-angka
+  - JANGAN ubah format atau isi field lain; language hanya di object language
 
 Schema JSON wajib:
 {
@@ -30,5 +36,6 @@ Schema JSON wajib:
     "total":""
   },
   "transaction_information": {"date":"","time":"","transaction_id":""},
-  "currency": {"code":"","symbol":"","name":"","confidence":""}
+  "currency": {"code":"","symbol":"","name":"","confidence":""},
+  "language": {"code":"","name":"","confidence":""}
 }`
