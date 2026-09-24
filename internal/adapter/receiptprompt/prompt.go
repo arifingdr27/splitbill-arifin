@@ -5,37 +5,66 @@ const Extract = `Lakukan Optical Character Recognition (OCR) pada gambar struk i
 Kembalikan HANYA JSON valid sesuai schema, tanpa markdown, tanpa penjelasan, tanpa teks di luar JSON.
 
 Aturan field:
-- items: daftar barang dari struk
-- price: harga per unit; jika tidak ada kolom terpisah, hitung total/quantity; jika tidak bisa, "0"
-- quantity, total: sesuai struk
-- nilai numerik: desimal tanpa pemisah ribuan (contoh "220000.00"); JANGAN sisipkan simbol atau kode mata uang ke field numerik
-- field tidak ditemukan: string kosong ""
+- items: daftar barang/produk dari struk (bukan baris pajak/fee)
+- price: harga per unit; jika tidak ada kolom terpisah, hitung total/quantity; jika tidak bisa, "0.00"
+- quantity: string angka (contoh "2"); total/price: desimal
+- nilai numerik uang: desimal PLAIN tanpa pemisah ribuan (contoh "220000.00"); JANGAN "18.000" atau "18.000,00"; JANGAN sisipkan simbol mata uang
+- field tidak ditemukan: null (bukan string kosong "")
 - date: DD/MM/YYYY
-- time: HH:MM
-- discount: angka desimal; jika tidak ada, "0"
-- currency: deteksi mata uang dari simbol (Rp, $, €, ¥), kode (IDR, USD), alamat/lokasi toko, atau istilah pajak (PPN/Pajak)
-  - code: ISO 4217 (contoh "IDR"); jika tidak yakin ""
-  - symbol: contoh "Rp", "$"; jika tidak ada ""
-  - name: nama lengkap (contoh "Indonesian Rupiah"); jika tidak yakin ""
-  - confidence: "high" | "medium" | "low"
-  - JANGAN ubah format atau isi field lain; currency hanya di object currency
-- language: deteksi bahasa utama teks pada struk (label item, header, footer, pajak, total)
-  - code: ISO 639-1 (contoh "id", "en", "ja"); jika tidak yakin ""
-  - name: nama bahasa dalam English (contoh "Indonesian", "English", "Japanese"); jika tidak yakin ""
-  - confidence: "high" | "medium" | "low"
-  - jika struk bilingual, pilih bahasa yang paling dominan pada label/teks non-angka
-  - JANGAN ubah format atau isi field lain; language hanya di object language
+- time: HH:MM atau null
+- discount: angka desimal; jika tidak ada, "0.00"
+- store_name: nama toko LENGKAP dari header struk; jangan potong/truncate
+- baca nama item hati-hati (menu Indonesia); hindari typo OCR umum
+
+fees[] (WAJIB — source of truth biaya non-item):
+- Setiap baris biaya di struk yang BUKAN item produk → 1 entry di fees (pajak, service, tip, packing, delivery, takeaway, round-up, dll)
+- Boleh 0 hingga ~10 entry; JANGAN gabungkan beberapa pajak jadi 1 amount kecuali struk hanya menampilkan 1 angka pajak total
+- JANGAN truncate / buang baris fee
+- type (wajib salah satu): tax | service_charge | tip | fee | other
+  Mapping nama → type (case-insensitive):
+  - mengandung PB1, PPN, PPNBM, VAT, tax, pajak → tax
+  - service, service charge, SC → service_charge
+  - tip, gratuity, tips → tip
+  - packing, delivery, ongkir, takeaway, kemasan, round → fee
+  - tidak yakin → other (tetap masukkan)
+- name: teks ASLI label dari struk (pertahankan)
+- amount: plain decimal "18564.00"
+- rate: jika struk tulis "10%" / "11%" simpan "10" / "11"; else null
+- Pajak restoran Indonesia: label PB1/Pajak Daerah — JANGAN tulis "PBB"
+
+Legacy fields (tetap isi agar FE lama tidak pecah; BE akan menghitung ulang dari fees[]):
+- totals.tax.amount / total_tax = jumlah semua fee type=tax
+- totals.tax.name = nama pajak utama (fee tax terbesar, atau pertama)
+- totals.service_charge DAN totals.tax.service_charge = jumlah semua type=service_charge
+- totals.tax.dpp: dari struk atau null
+
+Balance:
+- sum(items[].total) ≈ totals.subtotal
+- totals.subtotal - totals.discount + sum(fees[].amount) ≈ totals.total
+- payment: nominal bayar dari struk; jika tidak ada, samakan dengan total
+- change: kembalian atau null
+
+currency: deteksi dari simbol (Rp, $, €, ¥), kode (IDR, USD), lokasi, atau istilah pajak
+  - code ISO 4217; symbol; name; confidence "high"|"medium"|"low"
+language: bahasa utama teks struk
+  - code ISO 639-1; name English; confidence "high"|"medium"|"low"
+  - bilingual: pilih yang paling dominan pada label non-angka
 
 Schema JSON wajib:
 {
   "items": [{"name":"","price":"","quantity":"","total":""}],
-  "store_information": {"address":"","email":"","npwp":"","phone_number":"","store_name":""},
+  "store_information": {"address":"","email":null,"npwp":null,"phone_number":null,"store_name":""},
   "totals": {
-    "change":"","discount":"","payment":"","subtotal":"",
-    "tax":{"amount":"","service_charge":"","dpp":"","name":"","total_tax":""},
-    "total":""
+    "subtotal":"",
+    "discount":"0.00",
+    "fees": [{"type":"tax","name":"","amount":"","rate":null}],
+    "tax":{"amount":"","service_charge":"","dpp":null,"name":"","total_tax":""},
+    "service_charge":"",
+    "total":"",
+    "payment":"",
+    "change":null
   },
-  "transaction_information": {"date":"","time":"","transaction_id":""},
+  "transaction_information": {"date":"","time":null,"transaction_id":null},
   "currency": {"code":"","symbol":"","name":"","confidence":""},
   "language": {"code":"","name":"","confidence":""}
 }`

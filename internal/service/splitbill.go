@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/arifin2018/splitbill-arifin.git/internal/adapter/receiptprompt"
 	"github.com/arifin2018/splitbill-arifin.git/internal/config"
 	"github.com/arifin2018/splitbill-arifin.git/internal/domain"
 	"github.com/arifin2018/splitbill-arifin.git/internal/port"
@@ -56,6 +57,7 @@ func (s *SplitbillService) ExtractReceipt(ctx context.Context, input domain.Imag
 	if err != nil {
 		return nil, err
 	}
+	receiptprompt.Normalize(result)
 	return result, nil
 }
 

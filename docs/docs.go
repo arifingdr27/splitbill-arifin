@@ -168,6 +168,28 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.Fee": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "string",
+                    "example": "5000.00"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "PB1"
+                },
+                "rate": {
+                    "type": "string",
+                    "example": "10",
+                    "x-nullable": true
+                },
+                "type": {
+                    "type": "string",
+                    "example": "tax"
+                }
+            }
+        },
         "domain.StoreInformation": {
             "type": "object",
             "properties": {
@@ -177,15 +199,18 @@ const docTemplate = `{
                 },
                 "email": {
                     "type": "string",
-                    "example": "info@restaurant.com"
+                    "example": "info@restaurant.com",
+                    "x-nullable": true
                 },
                 "npwp": {
                     "type": "string",
-                    "example": "12.345.678.9-012.345"
+                    "example": "12.345.678.9-012.345",
+                    "x-nullable": true
                 },
                 "phone_number": {
                     "type": "string",
-                    "example": "+62812345678"
+                    "example": "+62812345678",
+                    "x-nullable": true
                 },
                 "store_name": {
                     "type": "string",
@@ -202,11 +227,12 @@ const docTemplate = `{
                 },
                 "dpp": {
                     "type": "string",
-                    "example": "95000.00"
+                    "example": "95000.00",
+                    "x-nullable": true
                 },
                 "name": {
                     "type": "string",
-                    "example": "PPN"
+                    "example": "PB1"
                 },
                 "service_charge": {
                     "type": "string",
@@ -223,15 +249,26 @@ const docTemplate = `{
             "properties": {
                 "change": {
                     "type": "string",
-                    "example": "5000.00"
+                    "example": "5000.00",
+                    "x-nullable": true
                 },
                 "discount": {
                     "type": "string",
                     "example": "0.00"
                 },
+                "fees": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Fee"
+                    }
+                },
                 "payment": {
                     "type": "string",
                     "example": "105000.00"
+                },
+                "service_charge": {
+                    "type": "string",
+                    "example": "0.00"
                 },
                 "subtotal": {
                     "type": "string",
@@ -255,11 +292,13 @@ const docTemplate = `{
                 },
                 "time": {
                     "type": "string",
-                    "example": "19:30"
+                    "example": "19:30",
+                    "x-nullable": true
                 },
                 "transaction_id": {
                     "type": "string",
-                    "example": "TXN123456789"
+                    "example": "TXN123456789",
+                    "x-nullable": true
                 }
             }
         }

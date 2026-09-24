@@ -67,6 +67,22 @@ definitions:
       transaction_information:
         $ref: '#/definitions/domain.TransactionInfo'
     type: object
+  domain.Fee:
+    properties:
+      amount:
+        example: "5000.00"
+        type: string
+      name:
+        example: PB1
+        type: string
+      rate:
+        example: "10"
+        type: string
+        x-nullable: true
+      type:
+        example: tax
+        type: string
+    type: object
   domain.StoreInformation:
     properties:
       address:
@@ -75,12 +91,15 @@ definitions:
       email:
         example: info@restaurant.com
         type: string
+        x-nullable: true
       npwp:
         example: 12.345.678.9-012.345
         type: string
+        x-nullable: true
       phone_number:
         example: "+62812345678"
         type: string
+        x-nullable: true
       store_name:
         example: Restaurant ABC
         type: string
@@ -93,8 +112,9 @@ definitions:
       dpp:
         example: "95000.00"
         type: string
+        x-nullable: true
       name:
-        example: PPN
+        example: PB1
         type: string
       service_charge:
         example: "0.00"
@@ -108,11 +128,19 @@ definitions:
       change:
         example: "5000.00"
         type: string
+        x-nullable: true
       discount:
         example: "0.00"
         type: string
+      fees:
+        items:
+          $ref: '#/definitions/domain.Fee'
+        type: array
       payment:
         example: "105000.00"
+        type: string
+      service_charge:
+        example: "0.00"
         type: string
       subtotal:
         example: "95000.00"
@@ -131,9 +159,11 @@ definitions:
       time:
         example: "19:30"
         type: string
+        x-nullable: true
       transaction_id:
         example: TXN123456789
         type: string
+        x-nullable: true
     type: object
 host: localhost:3000
 info:

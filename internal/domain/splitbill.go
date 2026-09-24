@@ -33,34 +33,44 @@ type Item struct {
 }
 
 type StoreInformation struct {
-	Address     string `json:"address" example:"Jl. Sudirman No. 123, Jakarta"`
-	Email       string `json:"email" example:"info@restaurant.com"`
-	NPWP        string `json:"npwp" example:"12.345.678.9-012.345"`
-	PhoneNumber string `json:"phone_number" example:"+62812345678"`
-	StoreName   string `json:"store_name" example:"Restaurant ABC"`
+	Address     string  `json:"address" example:"Jl. Sudirman No. 123, Jakarta"`
+	Email       *string `json:"email" example:"info@restaurant.com"`
+	NPWP        *string `json:"npwp" example:"12.345.678.9-012.345"`
+	PhoneNumber *string `json:"phone_number" example:"+62812345678"`
+	StoreName   string  `json:"store_name" example:"Restaurant ABC"`
+}
+
+// Fee is a non-item charge line (tax, service, tip, packing, etc.).
+type Fee struct {
+	Type   string  `json:"type" example:"tax"`
+	Name   string  `json:"name" example:"PB1"`
+	Amount string  `json:"amount" example:"5000.00"`
+	Rate   *string `json:"rate" example:"10"`
 }
 
 type Totals struct {
-	Change   string `json:"change" example:"5000.00"`
-	Discount string `json:"discount" example:"0.00"`
-	Payment  string `json:"payment" example:"105000.00"`
-	Subtotal string `json:"subtotal" example:"95000.00"`
-	Tax      Tax    `json:"tax"`
-	Total    string `json:"total" example:"100000.00"`
+	Subtotal      string  `json:"subtotal" example:"95000.00"`
+	Discount      string  `json:"discount" example:"0.00"`
+	Fees          []Fee   `json:"fees"`
+	Tax           Tax     `json:"tax"`
+	ServiceCharge string  `json:"service_charge" example:"0.00"`
+	Total         string  `json:"total" example:"100000.00"`
+	Payment       string  `json:"payment" example:"105000.00"`
+	Change        *string `json:"change" example:"5000.00"`
 }
 
 type Tax struct {
-	Amount        string `json:"amount" example:"5000.00"`
-	ServiceCharge string `json:"service_charge" example:"0.00"`
-	DPP           string `json:"dpp" example:"95000.00"`
-	Name          string `json:"name" example:"PPN"`
-	TotalTax      string `json:"total_tax" example:"5000.00"`
+	Amount        string  `json:"amount" example:"5000.00"`
+	ServiceCharge string  `json:"service_charge" example:"0.00"`
+	DPP           *string `json:"dpp" example:"95000.00"`
+	Name          string  `json:"name" example:"PB1"`
+	TotalTax      string  `json:"total_tax" example:"5000.00"`
 }
 
 type TransactionInfo struct {
-	Date          string `json:"date" example:"02/08/2025"`
-	Time          string `json:"time" example:"19:30"`
-	TransactionID string `json:"transaction_id" example:"TXN123456789"`
+	Date          string  `json:"date" example:"02/08/2025"`
+	Time          *string `json:"time" example:"19:30"`
+	TransactionID *string `json:"transaction_id" example:"TXN123456789"`
 }
 
 type ErrorResponse struct {
@@ -69,9 +79,9 @@ type ErrorResponse struct {
 }
 
 type QuotaExceededResponse struct {
-	Status string         `json:"status"`
-	Data   string         `json:"data"`
-	Quota  QuotaSnapshot  `json:"quota"`
+	Status string        `json:"status"`
+	Data   string        `json:"data"`
+	Quota  QuotaSnapshot `json:"quota"`
 }
 
 // ImageInput carries receipt image bytes for the extract use-case.

@@ -102,6 +102,8 @@ func (e *Extractor) Extract(ctx context.Context, image []byte, mimeType string) 
 
 func receiptSchema() *genai.Schema {
 	str := &genai.Schema{Type: genai.TypeString}
+	nullableTrue := true
+	nullableStr := &genai.Schema{Type: genai.TypeString, Nullable: &nullableTrue}
 	item := &genai.Schema{
 		Type: genai.TypeObject,
 		Properties: map[string]*genai.Schema{
@@ -112,16 +114,26 @@ func receiptSchema() *genai.Schema {
 		},
 		Required: []string{"name", "price", "quantity", "total"},
 	}
+	fee := &genai.Schema{
+		Type: genai.TypeObject,
+		Properties: map[string]*genai.Schema{
+			"type":   str,
+			"name":   str,
+			"amount": str,
+			"rate":   nullableStr,
+		},
+		Required: []string{"type", "name", "amount"},
+	}
 	tax := &genai.Schema{
 		Type: genai.TypeObject,
 		Properties: map[string]*genai.Schema{
 			"amount":         str,
 			"service_charge": str,
-			"dpp":            str,
+			"dpp":            nullableStr,
 			"name":           str,
 			"total_tax":      str,
 		},
-		Required: []string{"amount", "service_charge", "dpp", "name", "total_tax"},
+		Required: []string{"amount", "service_charge", "name", "total_tax"},
 	}
 	currency := &genai.Schema{
 		Type: genai.TypeObject,
@@ -153,33 +165,35 @@ func receiptSchema() *genai.Schema {
 				Type: genai.TypeObject,
 				Properties: map[string]*genai.Schema{
 					"address":      str,
-					"email":        str,
-					"npwp":         str,
-					"phone_number": str,
+					"email":        nullableStr,
+					"npwp":         nullableStr,
+					"phone_number": nullableStr,
 					"store_name":   str,
 				},
-				Required: []string{"address", "email", "npwp", "phone_number", "store_name"},
+				Required: []string{"address", "store_name"},
 			},
 			"totals": {
 				Type: genai.TypeObject,
 				Properties: map[string]*genai.Schema{
-					"change":   str,
-					"discount": str,
-					"payment":  str,
-					"subtotal": str,
-					"tax":      tax,
-					"total":    str,
+					"subtotal":       str,
+					"discount":       str,
+					"fees":           {Type: genai.TypeArray, Items: fee},
+					"tax":            tax,
+					"service_charge": str,
+					"total":          str,
+					"payment":        str,
+					"change":         nullableStr,
 				},
-				Required: []string{"change", "discount", "payment", "subtotal", "tax", "total"},
+				Required: []string{"subtotal", "discount", "fees", "tax", "service_charge", "total", "payment"},
 			},
 			"transaction_information": {
 				Type: genai.TypeObject,
 				Properties: map[string]*genai.Schema{
 					"date":           str,
-					"time":           str,
-					"transaction_id": str,
+					"time":           nullableStr,
+					"transaction_id": nullableStr,
 				},
-				Required: []string{"date", "time", "transaction_id"},
+				Required: []string{"date"},
 			},
 			"currency": currency,
 			"language": language,
