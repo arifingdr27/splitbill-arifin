@@ -35,6 +35,12 @@ func writeError(c *fiber.Ctx, err error) error {
 		msg = "invalid google token"
 	case errors.Is(err, domain.ErrQuotaExceeded):
 		return writeQuotaExceeded(c, nil)
+	case errors.Is(err, domain.ErrShareNotFound):
+		status = fiber.StatusNotFound
+		msg = domain.ErrShareNotFound.Error()
+	case errors.Is(err, domain.ErrSharePayloadInvalid):
+		status = fiber.StatusBadRequest
+		msg = domain.ErrSharePayloadInvalid.Error()
 	case errors.Is(err, domain.ErrImageRequired):
 		status = fiber.StatusBadRequest
 		msg = domain.ErrImageRequired.Error()

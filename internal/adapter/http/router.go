@@ -12,6 +12,7 @@ type Router struct {
 	handler      *SplitbillHandler
 	authHandler  *AuthHandler
 	quotaHandler *QuotaHandler
+	shareHandler *ShareHandler
 	tokens       port.TokenIssuer
 	cfg          *config.Config
 	log          *logrus.Logger
@@ -21,6 +22,7 @@ func NewRouter(
 	handler *SplitbillHandler,
 	authHandler *AuthHandler,
 	quotaHandler *QuotaHandler,
+	shareHandler *ShareHandler,
 	tokens port.TokenIssuer,
 	cfg *config.Config,
 	log *logrus.Logger,
@@ -29,6 +31,7 @@ func NewRouter(
 		handler:      handler,
 		authHandler:  authHandler,
 		quotaHandler: quotaHandler,
+		shareHandler: shareHandler,
 		tokens:       tokens,
 		cfg:          cfg,
 		log:          log,
@@ -50,6 +53,8 @@ func (r *Router) Mount(app *fiber.App) {
 	v1 := api.Group("/v1")
 	v1.Post("/auth/google", authRL, r.authHandler.GoogleLogin)
 	v1.Get("/me/quota", authMW, r.quotaHandler.MeQuota)
+	v1.Post("/shares", authMW, r.shareHandler.Create)
+	v1.Get("/shares/:id", r.shareHandler.Get)
 
 	v2 := api.Group("/v2", extractRL, authMW)
 	v2.Post("", r.handler.Extract)

@@ -11,7 +11,9 @@ var (
 	ErrStorageUnavailable = errors.New("storage backend is not configured")
 	ErrExtractFailed      = errors.New("failed to extract receipt data")
 
-	ErrUnauthorized     = errors.New("unauthorized")
+	ErrUnauthorized       = errors.New("unauthorized")
 	ErrInvalidGoogleToken = errors.New("invalid google token")
-	ErrQuotaExceeded    = errors.New("Free quota and credits are exhausted")
+	ErrQuotaExceeded      = errors.New("Free quota and credits are exhausted")
+	ErrShareNotFound      = errors.New("share not found")
+	ErrSharePayloadInvalid = errors.New("share payload is invalid")
 )

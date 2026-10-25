@@ -34,6 +34,7 @@ const (
 	DefaultStorageCleanupIntervalHrs = 24
 	DefaultFreeOCRLimit              = 5
 	DefaultJWTTTLDays                = 30
+	DefaultShareTTLDays              = 30
 )
 
 type Config struct {
@@ -74,6 +75,7 @@ type Config struct {
 	JWTTTLDays     int
 	GoogleClientID string
 	FreeOCRLimit   int
+	ShareTTLDays   int
 }
 
 func Load(envFiles ...string) (*Config, error) {
@@ -126,6 +128,7 @@ func Load(envFiles ...string) (*Config, error) {
 		JWTTTLDays:     getEnvInt("JWT_TTL_DAYS", DefaultJWTTTLDays),
 		GoogleClientID: os.Getenv("GOOGLE_CLIENT_ID"),
 		FreeOCRLimit:   getEnvInt("FREE_OCR_LIMIT", DefaultFreeOCRLimit),
+		ShareTTLDays:   getEnvInt("SHARE_TTL_DAYS", DefaultShareTTLDays),
 	}
 
 	if err := cfg.validate(); err != nil {
@@ -171,6 +174,9 @@ func (c *Config) validate() error {
 	}
 	if c.FreeOCRLimit < 1 {
 		return fmt.Errorf("FREE_OCR_LIMIT must be >= 1")
+	}
+	if c.ShareTTLDays < 1 {
+		return fmt.Errorf("SHARE_TTL_DAYS must be >= 1")
 	}
 	if c.UsesGemini() && c.GeminiAPIKey == "" {
 		return fmt.Errorf("GEMINI_API_KEY is required when EXTRACT_PROVIDER includes gemini")

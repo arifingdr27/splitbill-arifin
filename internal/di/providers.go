@@ -36,6 +36,14 @@ func provideUsageRepo(pool *pgxpool.Pool) port.UsageRepository {
 	return postgres.NewUsageRepo(pool)
 }
 
+func provideShareRepo(pool *pgxpool.Pool) port.ShareRepository {
+	return postgres.NewShareRepo(pool)
+}
+
+func provideShareService(shares port.ShareRepository, cfg *config.Config, log *logrus.Logger) *service.ShareService {
+	return service.NewShareService(shares, cfg.ShareTTLDays, log)
+}
+
 func provideGoogleVerifier(cfg *config.Config) port.GoogleTokenVerifier {
 	return googleauth.NewVerifier(cfg.GoogleClientID)
 }
@@ -103,10 +111,12 @@ func InitializeRouter(ctx context.Context, cfg *config.Config) (*httpadapter.Rou
 	}
 	users := provideUserRepo(pool)
 	usage := provideUsageRepo(pool)
+	shares := provideShareRepo(pool)
 	verifier := provideGoogleVerifier(cfg)
 	tokens := provideTokenIssuer(cfg)
 	authSvc := provideAuthService(users, verifier, tokens, log)
 	quotaSvc := provideQuotaService(pool, users, usage, cfg, log)
+	shareSvc := provideShareService(shares, cfg, log)
 
 	uploader, err := provideStorage(ctx, cfg, log)
 	if err != nil {
@@ -120,5 +130,6 @@ func InitializeRouter(ctx context.Context, cfg *config.Config) (*httpadapter.Rou
 	handler := httpadapter.NewSplitbillHandler(svc, quotaSvc, log, cfg)
 	authHandler := httpadapter.NewAuthHandler(authSvc, log)
 	quotaHandler := httpadapter.NewQuotaHandler(quotaSvc, log)
-	return httpadapter.NewRouter(handler, authHandler, quotaHandler, tokens, cfg, log), nil
+	shareHandler := httpadapter.NewShareHandler(shareSvc, log)
+	return httpadapter.NewRouter(handler, authHandler, quotaHandler, shareHandler, tokens, cfg, log), nil
 }
