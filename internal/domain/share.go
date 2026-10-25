@@ -9,6 +9,7 @@ import (
 
 type Share struct {
 	ID        uuid.UUID
+	Code      string
 	CreatedBy *uuid.UUID
 	Payload   json.RawMessage
 	CreatedAt time.Time

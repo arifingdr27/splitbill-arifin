@@ -10,6 +10,7 @@ import (
 )
 
 type ShareRepository interface {
-	Create(ctx context.Context, createdBy uuid.UUID, payload json.RawMessage, expiresAt *time.Time) (*domain.Share, error)
+	Create(ctx context.Context, createdBy uuid.UUID, code string, payload json.RawMessage, expiresAt *time.Time) (*domain.Share, error)
+	GetByCode(ctx context.Context, code string) (*domain.Share, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.Share, error)
 }

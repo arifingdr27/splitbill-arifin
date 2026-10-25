@@ -2,7 +2,10 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
+	"errors"
+	"strings"
 	"time"
 
 	"github.com/arifin2018/splitbill-arifin.git/internal/domain"
@@ -14,6 +17,9 @@ import (
 const (
 	maxSharePayloadBytes = 256 * 1024
 	defaultShareTTLDays  = 30
+	shareCodeAlphabet    = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	shareCodeLength      = 8
+	shareCreateAttempts  = 5
 )
 
 type ShareService struct {
@@ -27,6 +33,19 @@ func NewShareService(shares port.ShareRepository, ttlDays int, log *logrus.Logge
 		ttlDays = defaultShareTTLDays
 	}
 	return &ShareService{shares: shares, ttlDays: ttlDays, log: log}
+}
+
+func generateShareCode() (string, error) {
+	buf := make([]byte, shareCodeLength)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	var b strings.Builder
+	b.Grow(shareCodeLength)
+	for _, v := range buf {
+		b.WriteByte(shareCodeAlphabet[int(v)%len(shareCodeAlphabet)])
+	}
+	return b.String(), nil
 }
 
 func (s *ShareService) Create(ctx context.Context, userID uuid.UUID, payload json.RawMessage) (*domain.CreateShareResult, error) {
@@ -47,24 +66,56 @@ func (s *ShareService) Create(ctx context.Context, userID uuid.UUID, payload jso
 	}
 
 	expiresAt := time.Now().UTC().Add(time.Duration(s.ttlDays) * 24 * time.Hour)
-	share, err := s.shares.Create(ctx, userID, payload, &expiresAt)
-	if err != nil {
-		s.log.WithError(err).Error("create share failed")
-		return nil, err
+
+	var lastErr error
+	for attempt := 0; attempt < shareCreateAttempts; attempt++ {
+		code, err := generateShareCode()
+		if err != nil {
+			return nil, err
+		}
+		share, err := s.shares.Create(ctx, userID, code, payload, &expiresAt)
+		if err == nil {
+			return &domain.CreateShareResult{ID: share.Code}, nil
+		}
+		lastErr = err
+		if !errors.Is(err, domain.ErrShareCodeConflict) {
+			s.log.WithError(err).Error("create share failed")
+			return nil, err
+		}
 	}
-	return &domain.CreateShareResult{ID: share.ID.String()}, nil
+
+	s.log.WithError(lastErr).Error("create share exhausted code retries")
+	return nil, lastErr
 }
 
-func (s *ShareService) Get(ctx context.Context, id uuid.UUID) (*domain.ShareView, error) {
-	share, err := s.shares.GetByID(ctx, id)
+func (s *ShareService) Get(ctx context.Context, publicID string) (*domain.ShareView, error) {
+	publicID = strings.TrimSpace(publicID)
+	if publicID == "" {
+		return nil, domain.ErrShareNotFound
+	}
+
+	var (
+		share *domain.Share
+		err   error
+	)
+	if id, parseErr := uuid.Parse(publicID); parseErr == nil {
+		share, err = s.shares.GetByID(ctx, id)
+	} else {
+		share, err = s.shares.GetByCode(ctx, publicID)
+	}
 	if err != nil {
 		return nil, err
 	}
 	if share.ExpiresAt != nil && time.Now().UTC().After(share.ExpiresAt.UTC()) {
 		return nil, domain.ErrShareNotFound
 	}
+
+	viewID := share.Code
+	if viewID == "" {
+		viewID = share.ID.String()
+	}
 	return &domain.ShareView{
-		ID:        share.ID.String(),
+		ID:        viewID,
 		Payload:   share.Payload,
 		CreatedAt: share.CreatedAt,
 		ExpiresAt: share.ExpiresAt,

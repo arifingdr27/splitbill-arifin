@@ -14,6 +14,7 @@ var (
 	ErrUnauthorized       = errors.New("unauthorized")
 	ErrInvalidGoogleToken = errors.New("invalid google token")
 	ErrQuotaExceeded      = errors.New("Free quota and credits are exhausted")
-	ErrShareNotFound      = errors.New("share not found")
+	ErrShareNotFound       = errors.New("share not found")
 	ErrSharePayloadInvalid = errors.New("share payload is invalid")
+	ErrShareCodeConflict   = errors.New("share code conflict")
 )
